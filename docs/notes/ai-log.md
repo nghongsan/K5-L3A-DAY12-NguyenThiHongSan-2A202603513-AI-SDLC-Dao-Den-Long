@@ -15,6 +15,8 @@ Token đo từ transcript cục bộ bằng `npm run tokens` (scripts/token-usag
 | **Cộng dồn tới tag phase-2** | 84 | 439k | 22.2M | 329k | |
 | Phase 3 (dầu đèn, drain, luật bình minh, giao diện, ADR, changelog) | ~17 | ~69k | ~8.5M | ~57k | Vẫn cùng phiên; ít lượt hơn nhờ sửa bằng script có assert |
 | **Cộng dồn tới tag phase-3** | 101 | 508k | 30.7M | 387k | |
+| Phase 4 (bench, soak, bảng xếp hạng, a11y, đóng gói, retro, Release) | ~22 | ~80k | ~12M | ~70k | Soak và bench đo bằng lệnh thật |
+| **Cộng dồn tới tag phase-4 (ước tính)** | ~123 | ~0.59M | ~42M | ~0.46M | Xem retro §6 |
 
 "Đọc cache" là ngữ cảnh được gửi lại ở mỗi lượt gọi (rẻ hơn nhiều so với input mới). Phần này tăng theo số lượt × độ dài hội thoại, nên giảm số lượt là cách tiết kiệm chính.
 
@@ -32,6 +34,10 @@ Token đo từ transcript cục bộ bằng `npm run tokens` (scripts/token-usag
 ## Lời nhắc chính (Phase 3)
 
 1. Dán nguyên văn Ticket-03 + "Làm tiếp Phase 3".
+
+## Lời nhắc chính (Phase 4)
+
+1. Dán nguyên văn Ticket-04 + "làm phase 4".
 
 ## Cách đã tiết kiệm token
 
