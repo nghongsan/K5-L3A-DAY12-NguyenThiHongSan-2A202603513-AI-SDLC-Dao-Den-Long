@@ -6,9 +6,9 @@ import { readFileSync } from 'node:fs';
 import { runHeadless, toJsonl } from '../src/core/runner.js';
 import { T, contract, run, snaps, events, last, at, ticksOf, hd } from './helpers.js';
 
-test('C1 contract v1.2: đủ khóa, tuning khớp số chuẩn Ticket-02 + Ticket-03 [P3: thời lượng Đêm, khóa dầu, điểm mới]', () => {
-  assert.equal(contract.contract_version, '1.2');
-  for (const k of ['team', 'build_cmd', 'run_cmd', 'headless_cmd']) assert.equal(typeof contract[k], 'string', k);
+test('C1 contract v1.3: đủ khóa (thêm bench_cmd, soak_cmd), tuning khớp số chuẩn Ticket-02 + Ticket-03 [P4: v1.3]', () => {
+  assert.equal(contract.contract_version, '1.3');
+  for (const k of ['team', 'build_cmd', 'run_cmd', 'headless_cmd', 'bench_cmd', 'soak_cmd']) assert.equal(typeof contract[k], 'string', k);
   const std = {
     player_speed: 6, carry_capacity: 10, lantern_cost: 10, lantern_count_night1: 5, pickup_radius: 1, interact_radius: 2,
     pulse_cost: 3, pulse_radius: 5, night1_duration_s: 240, night2_duration_s: 270, night3_duration_s: 300, flames: 3,

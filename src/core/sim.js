@@ -77,8 +77,10 @@ export class Game {
    * @param {{tuning: object, seed?: number, night?: number, scenario?: object}} opts
    *   scenario đã kiểm tra bởi io.parseScenario (hoặc object tương thích)
    */
-  constructor({ tuning, seed = 0, night = 1, scenario = {} }) {
+  constructor({ tuning, seed = 0, night = 1, scenario = {}, benchMode = false }) {
     this.t = tuning;
+    // Ticket-04 cảnh benchmark: tắt sinh thêm, sát thương, nhặt, hao dầu, kết thúc Đêm (luật di chuyển giữ nguyên)
+    this.benchMode = benchMode;
     this.night = night;
     this.map = NIGHTS[night];
     this.rng = mulberry32(seed);
@@ -285,7 +287,7 @@ export class Game {
     const p = this.player;
     this.ticksLeft--;
     for (const l of this.lanterns) {
-      if (!l.lit) continue;
+      if (!l.lit || this.benchMode) continue;
       const drainers = this.shades.filter((s) => s.state === 'drain' && s.target === l.id);
       l.fuel -= this.decayPerTick + this.drainPerTick * drainers.length;
       for (const s of drainers) {
@@ -478,7 +480,7 @@ export class Game {
 
   pickup(emit) {
     const p = this.player;
-    if (p.fallWait > 0) return;
+    if (p.fallWait > 0 || this.benchMode) return;
     const near = (pos) => hdist(p.pos, pos) <= this.t.pickup_radius + EPS && Math.abs(p.pos[1] - pos[1]) <= STD.pickupHeight + EPS;
     const cap = this.capacity();
     for (let i = 0; i < this.motes.length && p.carried < cap; ) {
@@ -759,7 +761,7 @@ export class Game {
 
   drifterTouch(emit) {
     const p = this.player;
-    if (p.fallWait > 0) return;
+    if (p.fallWait > 0 || this.benchMode) return;
     for (const d of this.drifters) {
       if (d.state !== 'chase' || hdist(d.pos, p.pos) > STD.drifterTouch + EPS) continue;
       const amount = Math.min(STD.drifterSteal, p.carried);
@@ -774,7 +776,7 @@ export class Game {
   shadeTouch(emit) {
     const p = this.player;
     const t = this.t;
-    if (p.fallWait > 0) return;
+    if (p.fallWait > 0 || this.benchMode) return;
     for (const s of this.shades) {
       if ((s.state !== 'wander' && s.state !== 'chase') || s.harmless) continue;
       if (hdist(s.pos, p.pos) > t.shade_hit_radius + EPS || Math.abs(s.pos[1] - p.pos[1]) > STD.shadeHitHeight + EPS) continue;
@@ -811,6 +813,7 @@ export class Game {
   }
 
   spawn(emit) {
+    if (this.benchMode) return;
     const s = this.simTick;
     const p = this.player;
     if (this.randomMotes && s % STD.moteEvery === 0 && this.motes.length < STD.moteCap) {
@@ -842,6 +845,7 @@ export class Game {
 
   /** Ticket-03: không còn thắng sớm. Hết lửa luôn thua trước; tới bình minh thì đủ ceil(0.6 × tổng) đèn sáng mới thắng. */
   checkEnd(emit) {
+    if (this.benchMode) return;
     const p = this.player;
     if (p.flames <= 0) this.finish('lost', 'no_flames', emit);
     else if (this.ticksLeft <= 0) {
