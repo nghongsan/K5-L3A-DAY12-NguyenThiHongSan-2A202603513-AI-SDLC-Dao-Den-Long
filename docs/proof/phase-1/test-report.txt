@@ -1,0 +1,166 @@
+TAP version 13
+# Subtest: CLI chạy theo contract: thoát 0, snapshot tick 0, dòng cuối end
+ok 1 - CLI chạy theo contract: thoát 0, snapshot tick 0, dòng cuối end
+  ---
+  duration_ms: 35.597666
+  type: 'test'
+  ...
+# Subtest: CLI tất định: 2 lần chạy cho file giống từng byte (kể cả id tự sinh)
+ok 2 - CLI tất định: 2 lần chạy cho file giống từng byte (kể cả id tự sinh)
+  ---
+  duration_ms: 71.559125
+  type: 'test'
+  ...
+# Subtest: CLI: file sai định dạng => mã 2 và báo lỗi ra stderr
+ok 3 - CLI: file sai định dạng => mã 2 và báo lỗi ra stderr
+  ---
+  duration_ms: 166.589958
+  type: 'test'
+  ...
+# Subtest: CLI: thiếu tham số bắt buộc => mã khác 0
+ok 4 - CLI: thiếu tham số bắt buộc => mã khác 0
+  ---
+  duration_ms: 30.003042
+  type: 'test'
+  ...
+# Subtest: C1 game.contract.json có đủ khóa của contract v1.0
+ok 5 - C1 game.contract.json có đủ khóa của contract v1.0
+  ---
+  duration_ms: 0.767
+  type: 'test'
+  ...
+# Subtest: R2 di chuyển: move [0,1], yaw 0, 60 tick => đi player_speed mét theo +Z
+ok 6 - R2 di chuyển: move [0,1], yaw 0, 60 tick => đi player_speed mét theo +Z
+  ---
+  duration_ms: 2.241292
+  type: 'test'
+  ...
+# Subtest: R2 xoay theo cam_yaw_deg: yaw 90 + [0,1] => +X; yaw 0 + [1,0] => +X
+ok 7 - R2 xoay theo cam_yaw_deg: yaw 90 + [0,1] => +X; yaw 0 + [1,0] => +X
+  ---
+  duration_ms: 0.9865
+  type: 'test'
+  ...
+# Subtest: R2 vector dài hơn 1 được chuẩn hóa
+ok 8 - R2 vector dài hơn 1 được chuẩn hóa
+  ---
+  duration_ms: 0.2435
+  type: 'test'
+  ...
+# Subtest: R2 nhảy: chỉ kích hoạt khi false->true, rời đất rồi về Y=0
+ok 9 - R2 nhảy: chỉ kích hoạt khi false->true, rời đất rồi về Y=0
+  ---
+  duration_ms: 0.754209
+  type: 'test'
+  ...
+# Subtest: R2 không rơi khỏi đảo (fall_enabled=false): bị giữ trong bán kính đảo
+ok 10 - R2 không rơi khỏi đảo (fall_enabled=false): bị giữ trong bán kính đảo
+  ---
+  duration_ms: 1.414792
+  type: 'test'
+  ...
+# Subtest: R3 nhặt đom đóm trong pickup_radius (<=), không nhặt ngoài
+ok 11 - R3 nhặt đom đóm trong pickup_radius (<=), không nhặt ngoài
+  ---
+  duration_ms: 0.251958
+  type: 'test'
+  ...
+# Subtest: R3 không mang quá carry_capacity
+ok 12 - R3 không mang quá carry_capacity
+  ---
+  duration_ms: 0.237958
+  type: 'test'
+  ...
+# Subtest: R4 nạp đủ lantern_cost thì thắp đèn, cộng per_lantern
+ok 13 - R4 nạp đủ lantern_cost thì thắp đèn, cộng per_lantern
+  ---
+  duration_ms: 0.531667
+  type: 'test'
+  ...
+# Subtest: R4 nạp thiếu thì chưa thắp; giữ nút không nạp lặp; ngoài interact_radius thì không nạp
+ok 14 - R4 nạp thiếu thì chưa thắp; giữ nút không nạp lặp; ngoài interact_radius thì không nạp
+  ---
+  duration_ms: 0.472083
+  type: 'test'
+  ...
+# Subtest: R8 thắng khi đủ 5 đèn sáng; đèn đặt sẵn lit không được cộng điểm
+ok 15 - R8 thắng khi đủ 5 đèn sáng; đèn đặt sẵn lit không được cộng điểm
+  ---
+  duration_ms: 0.211709
+  type: 'test'
+  ...
+# Subtest: R6 tỏa sáng: tốn pulse_cost, choáng + đẩy Bóng Mực trong pulse_radius, cộng per_stun
+ok 16 - R6 tỏa sáng: tốn pulse_cost, choáng + đẩy Bóng Mực trong pulse_radius, cộng per_stun
+  ---
+  duration_ms: 0.197042
+  type: 'test'
+  ...
+# Subtest: R6 choáng đúng pulse_stun_s rồi đuổi tiếp
+ok 17 - R6 choáng đúng pulse_stun_s rồi đuổi tiếp
+  ---
+  duration_ms: 0.812541
+  type: 'test'
+  ...
+# Subtest: R6 hồi chiêu pulse_cooldown_s; thiếu ánh sáng thì không tỏa
+ok 18 - R6 hồi chiêu pulse_cooldown_s; thiếu ánh sáng thì không tỏa
+  ---
+  duration_ms: 0.41975
+  type: 'test'
+  ...
+# Subtest: R5 Bóng Mực đuổi theo người chơi với shade_speed
+ok 19 - R5 Bóng Mực đuổi theo người chơi với shade_speed
+  ---
+  duration_ms: 0.223542
+  type: 'test'
+  ...
+# Subtest: R5 bị chạm: mất 1 lửa, rơi hit_drop_ratio đom đóm, bất tử invuln_s
+ok 20 - R5 bị chạm: mất 1 lửa, rơi hit_drop_ratio đom đóm, bất tử invuln_s
+  ---
+  duration_ms: 0.3125
+  type: 'test'
+  ...
+# Subtest: R5 Bóng Mực không vào safe_radius của đèn đã thắp
+ok 21 - R5 Bóng Mực không vào safe_radius của đèn đã thắp
+  ---
+  duration_ms: 3.105125
+  type: 'test'
+  ...
+# Subtest: R8 thua khi hết lửa (no_flames)
+ok 22 - R8 thua khi hết lửa (no_flames)
+  ---
+  duration_ms: 0.151583
+  type: 'test'
+  ...
+# Subtest: R8 thua khi trời sáng (dawn) đúng lúc hết giờ
+ok 23 - R8 thua khi trời sáng (dawn) đúng lúc hết giờ
+  ---
+  duration_ms: 0.14275
+  type: 'test'
+  ...
+# Subtest: C2 snapshot từ tick 0, đều mỗi --snapshot-every, dòng cuối là end, dựng scenario không phát event
+ok 24 - C2 snapshot từ tick 0, đều mỗi --snapshot-every, dòng cuối là end, dựng scenario không phát event
+  ---
+  duration_ms: 0.668292
+  type: 'test'
+  ...
+# Subtest: R5 Bóng Mực mới xuất hiện theo thời gian, phát shade_spawned với id mới
+ok 25 - R5 Bóng Mực mới xuất hiện theo thời gian, phát shade_spawned với id mới
+  ---
+  duration_ms: 4.693208
+  type: 'test'
+  ...
+# Subtest: C3 tất định: cùng seed + inputs => output giống hệt; khác seed => khác
+ok 26 - C3 tất định: cùng seed + inputs => output giống hệt; khác seed => khác
+  ---
+  duration_ms: 15.674667
+  type: 'test'
+  ...
+1..26
+# tests 26
+# suites 0
+# pass 26
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 379.30325
