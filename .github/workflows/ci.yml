@@ -1,0 +1,21 @@
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test
+      - name: Headless smoke (contract)
+        run: |
+          mkdir -p out
+          node src/headless/cli.js --seed 1 --night 1 --inputs scenarios/demo-inputs.json --ticks 600 --out out/a.jsonl
+          node src/headless/cli.js --seed 1 --night 1 --inputs scenarios/demo-inputs.json --ticks 600 --out out/b.jsonl
+          cmp out/a.jsonl out/b.jsonl
+          tail -n 1 out/a.jsonl
