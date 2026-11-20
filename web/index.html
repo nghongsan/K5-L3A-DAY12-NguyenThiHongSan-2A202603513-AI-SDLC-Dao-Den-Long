@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Đảo Đèn Lồng</title>
+<style>
+  :root { --warm: #ffb347; --ink: #2a1440; --text: #fff4e0; }
+  html, body { margin: 0; height: 100%; background: #140a24; color: var(--text); font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #hud { position: fixed; top: 12px; left: 12px; background: rgba(20, 10, 36, .72); border: 1px solid rgba(255, 179, 71, .35); border-radius: 10px; padding: 10px 14px; min-width: 210px; }
+  #hud div { display: flex; justify-content: space-between; gap: 16px; }
+  #hud b { color: var(--warm); }
+  #flames { letter-spacing: 2px; }
+  #hint { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: rgba(20, 10, 36, .8); padding: 8px 16px; border-radius: 8px; color: var(--warm); }
+  #hint:empty { display: none; }
+  #seed { position: fixed; bottom: 6px; right: 10px; font-size: 12px; opacity: .5; }
+  #flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s; }
+  #overlay { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(20, 10, 36, .78); }
+  #overlay[hidden] { display: none; }
+  .card { max-width: 520px; margin: 16px; padding: 24px 28px; background: rgba(42, 20, 64, .92); border: 1px solid rgba(255, 179, 71, .45); border-radius: 14px; text-align: center; }
+  .card h1 { margin: 0 0 8px; color: var(--warm); font-size: 30px; }
+  .card table { margin: 12px auto; text-align: left; border-collapse: collapse; }
+  .card td { padding: 2px 10px; }
+  .card kbd { background: #fff4e0; color: var(--ink); border-radius: 4px; padding: 1px 6px; font: 600 13px ui-monospace, monospace; }
+  .big { font-size: 22px; color: var(--warm); margin: 10px 0; }
+  .go { margin-top: 14px; font-weight: 600; animation: blink 1.4s infinite; }
+  @keyframes blink { 50% { opacity: .45; } }
+</style>
+<script type="importmap">{ "imports": { "three": "/node_modules/three/build/three.module.js" } }</script>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="hud" hidden>
+  <div>Lửa <span id="flames"></span></div>
+  <div>Đom đóm <b id="carried"></b></div>
+  <div>Đèn đã thắp <b id="lit"></b></div>
+  <div>Bình minh sau <b id="time"></b></div>
+  <div>Điểm <b id="score"></b></div>
+  <div>Tỏa sáng [F] <b id="pulse"></b></div>
+</div>
+<div id="hint"></div>
+<div id="seed"></div>
+<div id="flash"></div>
+<div id="overlay">
+  <div class="card" id="card">
+    <h1>Đảo Đèn Lồng</h1>
+    <p>Sương đen đã nuốt hết ánh sáng của Đảo Bến. Hãy giúp <b>Mây</b>, người giữ đèn nhỏ tuổi, gom đom đóm và thắp lại <b>5 Đèn Lồng Lớn</b> trước bình minh. Cẩn thận Bóng Mực!</p>
+    <table>
+      <tr><td><kbd>W A S D</kbd> / <kbd>↑ ↓</kbd></td><td>Di chuyển</td></tr>
+      <tr><td><kbd>← →</kbd> / kéo chuột</td><td>Xoay camera</td></tr>
+      <tr><td><kbd>Space</kbd></td><td>Nhảy</td></tr>
+      <tr><td><kbd>E</kbd></td><td>Nạp đom đóm vào đèn</td></tr>
+      <tr><td><kbd>F</kbd></td><td>Tỏa sáng xua Bóng Mực (tốn đom đóm)</td></tr>
+      <tr><td><kbd>Enter</kbd> / <kbd>R</kbd></td><td>Bắt đầu / chơi lại</td></tr>
+      <tr><td><kbd>B</kbd></td><td>Bật/tắt bot chơi thử</td></tr>
+    </table>
+    <div class="go">Nhấn Enter để bắt đầu</div>
+  </div>
+</div>
+<script type="module" src="/web/main.js"></script>
+</body>
+</html>
