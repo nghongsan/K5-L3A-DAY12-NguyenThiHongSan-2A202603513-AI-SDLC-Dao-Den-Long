@@ -32,7 +32,9 @@ test('CLI chạy theo contract: thoát 0, snapshot tick 0, dòng cuối end', ()
   assert.equal(lines[0].tick, 0);
   assert.deepEqual(lines.filter((l) => l.type === 'snapshot').map((l) => l.tick), [0, 60, 120]);
   assert.equal(lines.filter((l) => l.name === 'mote_picked').length, 1);
-  assert.deepEqual(lines.at(-1), { type: 'end', ticks: 120, state: 'playing', score: contract.tuning.score.per_mote });
+  // [P2] v1.1: điểm đom đóm tính lúc NẠP vào đèn, nhặt không cộng điểm
+  assert.deepEqual(lines.at(-1), { type: 'end', ticks: 120, state: 'playing', score: 0 });
+  assert.deepEqual(lines[1], { type: 'event', tick: 0, name: 'night_start', data: { night: 1 } });
 });
 
 test('CLI tất định: 2 lần chạy cho file giống từng byte (kể cả id tự sinh)', () => {
@@ -52,12 +54,43 @@ test('CLI: file sai định dạng => mã 2 và báo lỗi ra stderr', () => {
     'thiếu frames': ['--inputs', file('bad4.json', { tick: 0 })],
     'đèn không tồn tại': ['--scenario', file('bad5.json', { lanterns: [{ id: 'L9', lit: true }] })],
     'pos sai kiểu': ['--scenario', file('bad6.json', { player: { pos: [0, 0] } })],
+    'pause không phải boolean': ['--inputs', file('bad7.json', { frames: [{ tick: 0, pause: 1 }] })],
+    'trạng thái bóng sai tên': ['--scenario', file('bad8.json', { shades: [{ pos: [5, 1, 0], state: 'angry' }] })],
+    'drifter thiếu pos': ['--scenario', file('bad9.json', { drifters: [{ id: 'D1' }] })],
+    'bùa lạ thiếu pos': ['--scenario', file('bad10.json', { charms: [{ id: 'X9' }] })],
+    'invuln_ticks âm': ['--scenario', file('bad11.json', { player: { invuln_ticks: -1 } })],
   };
   for (const [name, extra] of Object.entries(cases)) {
     const r = cli('--seed', '1', '--night', '1', ...extra, '--ticks', '10', '--out', out);
     assert.equal(r.status, 2, name);
     assert.ok(r.stderr.length > 0, name);
   }
+});
+
+test('CLI --night 2 và 3 chạy được; scenario v1.1 đầy đủ trường được chấp nhận', () => {
+  const sc = file('v11.json', {
+    player: { pos: [35, 0, 0], carried: 6, invuln_ticks: 10, dash_cd_ticks: 5, pulse_cd_ticks: 0, charm_ticks: 0 },
+    random_motes: false, random_shades: false, random_drifters: false, wind_enabled: false,
+    shades: [{ id: 'S9', pos: [50, 1, 10], state: 'stunned', state_ticks_left: 30 }],
+    drifters: [{ id: 'D7', pos: [40, 1.5, 0], state: 'idle', stolen: 0 }],
+    charms: [{ id: 'C1', available: false, respawn_ticks: 100 }],
+    lanterns: [{ id: 'L6', deposited: 3 }],
+  });
+  for (const night of ['2', '3']) {
+    const out = join(tmp, `n${night}.jsonl`);
+    const r = cli('--seed', '1', '--night', night, ...(night === '2' ? ['--scenario', sc] : []), '--ticks', '60', '--out', out);
+    assert.equal(r.status, 0, r.stderr);
+    const first = readLines(out)[0];
+    assert.equal(first.night, Number(night));
+    if (night === '2') {
+      assert.deepEqual(first.shades[0], { id: 'S9', pos: [50, 1, 10], state: 'stunned', state_ticks_left: 30 });
+      assert.deepEqual(first.charms, [{ id: 'C1', available: false, respawn_s: 1.667 }]);
+      assert.equal(first.lanterns[5].deposited, 3);
+    }
+  }
+  const bad = cli('--seed', '1', '--night', '4', '--ticks', '10', '--out', join(tmp, 'x.jsonl'));
+  assert.notEqual(bad.status, 0);
+  assert.notEqual(bad.status, 2);
 });
 
 test('CLI: thiếu tham số bắt buộc => mã khác 0', () => {

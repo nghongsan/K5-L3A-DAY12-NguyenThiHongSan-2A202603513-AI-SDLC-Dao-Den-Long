@@ -1,15 +1,16 @@
 #!/usr/bin/env node
-// Chế độ headless theo Test Contract v1.0.
-// node src/headless/cli.js --seed <int> --night 1 [--scenario f.json] [--inputs f.json]
+// Chế độ headless theo Test Contract v1.1.
+// node src/headless/cli.js --seed <int> --night <1|2|3> [--scenario f.json] [--inputs f.json]
 //                          --ticks <int> --out <f.jsonl> [--snapshot-every <int, mặc định 10>]
 // Mã thoát: 0 = xong; 2 = file scenario/inputs sai định dạng; 1 = lỗi khác (tham số, đọc/ghi file).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { runHeadless, toJsonl } from '../core/runner.js';
 import { parseScenario, parseInputs, FormatError } from '../core/io.js';
 import { loadContract } from './contract.js';
+import { NIGHTS } from '../core/maps.js';
 
 const USAGE =
-  'cách dùng: node src/headless/cli.js --seed <int> --night 1 [--scenario f.json] [--inputs f.json] ' +
+  'cách dùng: node src/headless/cli.js --seed <int> --night <1|2|3> [--scenario f.json] [--inputs f.json] ' +
   '--ticks <int> --out <f.jsonl> [--snapshot-every <int>]';
 
 function die(code, msg) {
@@ -42,7 +43,7 @@ function parseArgs(argv) {
     inputs: a.inputs,
   };
   for (const req of ['seed', 'night', 'ticks', 'out']) if (o[req] === undefined) die(1, `thiếu --${req}\n${USAGE}`);
-  if (o.night !== 1) die(1, 'Phase 1 chỉ có --night 1');
+  if (![1, 2, 3].includes(o.night)) die(1, '--night phải là 1, 2 hoặc 3');
   return o;
 }
 
@@ -69,10 +70,11 @@ function readJson(path, parse, label) {
 
 const o = parseArgs(process.argv.slice(2));
 const { tuning } = loadContract();
-const scenario = o.scenario ? readJson(o.scenario, (x) => parseScenario(x, tuning.lantern_count_night1), 'scenario') : {};
+const map = NIGHTS[o.night];
+const scenario = o.scenario ? readJson(o.scenario, (x) => parseScenario(x, map.lanterns.length, map.charms), 'scenario') : {};
 const inputs = o.inputs ? readJson(o.inputs, parseInputs, 'inputs') : { frames: [] };
 try {
-  const lines = runHeadless({ tuning, seed: o.seed, scenario, inputs, ticks: o.ticks, snapshotEvery: o.every });
+  const lines = runHeadless({ tuning, seed: o.seed, night: o.night, scenario, inputs, ticks: o.ticks, snapshotEvery: o.every });
   writeFileSync(o.out, toJsonl(lines));
 } catch (e) {
   die(1, e.stack || String(e));
