@@ -10,6 +10,9 @@ Token đo từ transcript cục bộ bằng `npm run tokens` (scripts/token-usag
 | Chuẩn bị (đọc đề, hỏi quota) | 6 | ~46k | ~311k | ~5k | Đọc 6 file đề một lần |
 | Phase 1 (code + test + bằng chứng + tài liệu) | ~26 | ~158k | ~4.2M | ~131k | Đo đến lúc commit bằng chứng |
 | **Cộng dồn tới tag phase-1** | 32 | 204k | 4.48M | 137k | |
+| Giữa phase (push, kiểm tra lab board, repo đề) | ~10 | ~20k | ~1.3M | ~5k | Lab board tải phase mới qua database chỉ trình duyệt đọc được, nên người dùng dán Ticket-02 |
+| Phase 2 (lõi v1.1, 3 bản đồ, tính năng mới, giao diện, đo FPS, bằng chứng) | ~42 | ~215k | ~16.4M | ~187k | Ngữ cảnh dài nên phần đọc cache tăng nhanh |
+| **Cộng dồn tới tag phase-2** | 84 | 439k | 22.2M | 329k | |
 
 "Đọc cache" là ngữ cảnh được gửi lại ở mỗi lượt gọi (rẻ hơn nhiều so với input mới). Phần này tăng theo số lượt × độ dài hội thoại, nên giảm số lượt là cách tiết kiệm chính.
 
@@ -19,6 +22,11 @@ Token đo từ transcript cục bộ bằng `npm run tokens` (scripts/token-usag
 2. "Hiện tại mức sử dụng của tôi còn bao nhiêu, làm xong cái này còn bao nhiêu?"
 3. "Hoàn thành giúp tôi": agent đọc tab Phase 1 trên lab board, lập kế hoạch (lõi tất định tách khỏi phần vẽ, test theo mã yêu cầu, bot để chứng minh chơi được), rồi viết mã, test và bằng chứng.
 
+## Lời nhắc chính (Phase 2)
+
+1. Dán nguyên văn tab Ticket-02 từ lab board (agent không đọc được database của lab board).
+2. "Làm tiếp": agent viết lại lõi theo thứ tự 12 bước, viết test cho từng tính năng, làm giao diện 3 Đêm, đo FPS, rồi làm bằng chứng và gắn tag.
+
 ## Cách đã tiết kiệm token
 
 - Đọc lab board **một lần**, trích thành text rồi đọc bản text, không fetch lại.
@@ -26,6 +34,8 @@ Token đo từ transcript cục bộ bằng `npm run tokens` (scripts/token-usag
 - Test và scenario lấy số trực tiếp từ `game.contract.json`, nên đổi tuning không phải sửa test.
 - Dùng bot headless để cân chỉnh độ khó (30 ván chạy trong khoảng 1 s), không phải chơi thử bằng tay qua nhiều lượt.
 - Không dùng subagent; ảnh giao diện chụp bằng Chrome headless trong một lệnh.
+- Phase 2: sửa file lớn bằng script Python thay vì đọc lại cả file; test viết theo helper chung (`tests/helpers.js`).
+- **Điều nên làm khác:** Phase 2 vẫn chạy trong cùng phiên với Phase 1, nên mỗi lượt gửi lại ngữ cảnh rất dài (đọc cache 16M token). Phase 3 nên mở phiên mới để giảm phần này.
 
 ## Những lần AI sai
 

@@ -1,0 +1,298 @@
+TAP version 13
+# Subtest: CLI chạy theo contract: thoát 0, snapshot tick 0, dòng cuối end
+ok 1 - CLI chạy theo contract: thoát 0, snapshot tick 0, dòng cuối end
+  ---
+  duration_ms: 196.557292
+  type: 'test'
+  ...
+# Subtest: CLI tất định: 2 lần chạy cho file giống từng byte (kể cả id tự sinh)
+ok 2 - CLI tất định: 2 lần chạy cho file giống từng byte (kể cả id tự sinh)
+  ---
+  duration_ms: 234.330208
+  type: 'test'
+  ...
+# Subtest: CLI: file sai định dạng => mã 2 và báo lỗi ra stderr
+ok 3 - CLI: file sai định dạng => mã 2 và báo lỗi ra stderr
+  ---
+  duration_ms: 353.068791
+  type: 'test'
+  ...
+# Subtest: CLI --night 2 và 3 chạy được; scenario v1.1 đầy đủ trường được chấp nhận
+ok 4 - CLI --night 2 và 3 chạy được; scenario v1.1 đầy đủ trường được chấp nhận
+  ---
+  duration_ms: 102.87
+  type: 'test'
+  ...
+# Subtest: CLI: thiếu tham số bắt buộc => mã khác 0
+ok 5 - CLI: thiếu tham số bắt buộc => mã khác 0
+  ---
+  duration_ms: 33.79675
+  type: 'test'
+  ...
+# Subtest: F1 Lướt: 14 m/s trong 12 tick (2.8 m), đứng yên thì theo hướng mặt (+Z), event dash
+ok 6 - F1 Lướt: 14 m/s trong 12 tick (2.8 m), đứng yên thì theo hướng mặt (+Z), event dash
+  ---
+  duration_ms: 10.097125
+  type: 'test'
+  ...
+# Subtest: F1 Lướt theo hướng đang di chuyển; hồi chiêu 90 tick tính từ lúc bắt đầu
+ok 7 - F1 Lướt theo hướng đang di chuyển; hồi chiêu 90 tick tính từ lúc bắt đầu
+  ---
+  duration_ms: 2.877209
+  type: 'test'
+  ...
+# Subtest: F1 Lướt trên không giữ nguyên độ cao; không bất tử khi lướt
+ok 8 - F1 Lướt trên không giữ nguyên độ cao; không bất tử khi lướt
+  ---
+  duration_ms: 1.335917
+  type: 'test'
+  ...
+# Subtest: F2 Rơi (Y < −10): −1 lửa, mất toàn bộ đom đóm (lost), chờ 60 tick rồi hồi sinh ở điểm xuất phát, bất tử 90 tick
+ok 9 - F2 Rơi (Y < −10): −1 lửa, mất toàn bộ đom đóm (lost), chờ 60 tick rồi hồi sinh ở điểm xuất phát, bất tử 90 tick
+  ---
+  duration_ms: 1.879708
+  type: 'test'
+  ...
+# Subtest: F2 Rơi bỏ qua bất tử; hết lửa khi rơi thì thua ngay (no_flames), không hồi sinh
+ok 10 - F2 Rơi bỏ qua bất tử; hết lửa khi rơi thì thua ngay (no_flames), không hồi sinh
+  ---
+  duration_ms: 0.868083
+  type: 'test'
+  ...
+# Subtest: M1 Đêm 1: không còn lan can — bước ra ngoài bán kính 40 m là rơi [P2: thay luật Phase 1]
+ok 11 - M1 Đêm 1: không còn lan can — bước ra ngoài bán kính 40 m là rơi [P2: thay luật Phase 1]
+  ---
+  duration_ms: 0.649167
+  type: 'test'
+  ...
+# Subtest: M2 Đêm 2: 6 đèn; cầu tre x∈[26,44], z∈[−2,2] đi qua được; lệch khỏi cầu thì rơi
+ok 12 - M2 Đêm 2: 6 đèn; cầu tre x∈[26,44], z∈[−2,2] đi qua được; lệch khỏi cầu thì rơi
+  ---
+  duration_ms: 7.305125
+  type: 'test'
+  ...
+# Subtest: M2 Bục nhảy Đêm 2: bắn lên 14 m/s + 24 m/s ngang về tâm đảo kia, bay ~1.4 s, đáp trong đảo B
+ok 13 - M2 Bục nhảy Đêm 2: bắn lên 14 m/s + 24 m/s ngang về tâm đảo kia, bay ~1.4 s, đáp trong đảo B
+  ---
+  duration_ms: 0.64125
+  type: 'test'
+  ...
+# Subtest: M3 Đêm 3: vách tầng 1 chặn đi lên; dốc 30° đưa lên Y=3; bục (0,3,13) đưa lên tầng 2; tháp chặn
+ok 14 - M3 Đêm 3: vách tầng 1 chặn đi lên; dốc 30° đưa lên Y=3; bục (0,3,13) đưa lên tầng 2; tháp chặn
+  ---
+  duration_ms: 8.90475
+  type: 'test'
+  ...
+# Subtest: M3 Gió mạnh Đêm 3: mỗi 30 s một cơn 5 s, đẩy 2 m/s theo dir_deg; wind_enabled=false thì không có
+ok 15 - M3 Gió mạnh Đêm 3: mỗi 30 s một cơn 5 s, đẩy 2 m/s theo dir_deg; wind_enabled=false thì không có
+  ---
+  duration_ms: 37.042834
+  type: 'test'
+  ...
+# Subtest: M3 Lịch sinh: Đêm 2 mỗi 7 s, Đêm 3 mỗi 6 s (sau 2 con ở tick 300); Đêm 3 Bóng Mực 4.5 m/s
+ok 16 - M3 Lịch sinh: Đêm 2 mỗi 7 s, Đêm 3 mỗi 6 s (sau 2 con ở tick 300); Đêm 3 Bóng Mực 4.5 m/s
+  ---
+  duration_ms: 20.799625
+  type: 'test'
+  ...
+# Subtest: F3 Gió Lạc: chase khi Mây mang >= 5 và cách <= 15 m; chạm (<= 1.2 m) cướp min(3, mang), flee 240 tick rồi removed; bất tử không chặn
+ok 17 - F3 Gió Lạc: chase khi Mây mang >= 5 và cách <= 15 m; chạm (<= 1.2 m) cướp min(3, mang), flee 240 tick rồi removed; bất tử không chặn
+  ---
+  duration_ms: 4.48875
+  type: 'test'
+  ...
+# Subtest: F3 Gió Lạc idle khi Mây mang < 5 hoặc ở xa; vùng an toàn không chặn
+ok 18 - F3 Gió Lạc idle khi Mây mang < 5 hoặc ở xa; vùng an toàn không chặn
+  ---
+  duration_ms: 1.242791
+  type: 'test'
+  ...
+# Subtest: F3 Tỏa Sáng trúng Gió Lạc chase -> flee không cướp; trúng lúc flee có đồ -> thả lại thành đom đóm rơi, biến mất sau 120 tick
+ok 19 - F3 Tỏa Sáng trúng Gió Lạc chase -> flee không cướp; trúng lúc flee có đồ -> thả lại thành đom đóm rơi, biến mất sau 120 tick
+  ---
+  duration_ms: 3.89325
+  type: 'test'
+  ...
+# Subtest: F3 Gió Lạc sinh ở tick 1200, 2400… (Đêm 2, 3), tối đa 2, id D1, D2; Đêm 1 không có
+ok 20 - F3 Gió Lạc sinh ở tick 1200, 2400… (Đêm 2, 3), tối đa 2, id D1, D2; Đêm 1 không có
+  ---
+  duration_ms: 70.667583
+  type: 'test'
+  ...
+# Subtest: F4 Bùa Gió: nhặt như đom đóm, charm_picked, 600 tick chạy 7.2 m/s, lướt không hồi chiêu, xuất hiện lại sau 2700 tick
+ok 21 - F4 Bùa Gió: nhặt như đom đóm, charm_picked, 600 tick chạy 7.2 m/s, lướt không hồi chiêu, xuất hiện lại sau 2700 tick
+  ---
+  duration_ms: 1.132792
+  type: 'test'
+  ...
+# Subtest: F4 Bùa Đêm 3 ở (30,0,25) và (−30,0,25); Đêm 1 không có bùa
+ok 22 - F4 Bùa Đêm 3 ở (30,0,25) và (−30,0,25); Đêm 1 không có bùa
+  ---
+  duration_ms: 0.107292
+  type: 'test'
+  ...
+# Subtest: F5 Tạm dừng: tick vẫn tăng nhưng sim_tick, thời gian, hồi chiêu đứng yên; state paused; paused/resumed
+ok 23 - F5 Tạm dừng: tick vẫn tăng nhưng sim_tick, thời gian, hồi chiêu đứng yên; state paused; paused/resumed
+  ---
+  duration_ms: 0.228208
+  type: 'test'
+  ...
+# Subtest: C5 Một Đêm đầy đủ (21600 tick, Đêm 3) chạy headless < 30 s
+ok 24 - C5 Một Đêm đầy đủ (21600 tick, Đêm 3) chạy headless < 30 s
+  ---
+  duration_ms: 305.680875
+  type: 'test'
+  ...
+# Subtest: C1 contract v1.1: đủ khóa, tuning khớp số chuẩn Ticket-02
+ok 25 - C1 contract v1.1: đủ khóa, tuning khớp số chuẩn Ticket-02
+  ---
+  duration_ms: 5.52025
+  type: 'test'
+  ...
+# Subtest: R2 di chuyển: move [0,1], yaw 0, 60 tick => 6 m theo +Z (tăng tốc tức thì ≤ 0.1 s)
+ok 26 - R2 di chuyển: move [0,1], yaw 0, 60 tick => 6 m theo +Z (tăng tốc tức thì ≤ 0.1 s)
+  ---
+  duration_ms: 5.839167
+  type: 'test'
+  ...
+# Subtest: R2 xoay theo cam_yaw_deg: yaw 90 + [0,1] => +X; yaw 0 + [1,0] => +X; vector dài được chuẩn hóa
+ok 27 - R2 xoay theo cam_yaw_deg: yaw 90 + [0,1] => +X; yaw 0 + [1,0] => +X; vector dài được chuẩn hóa
+  ---
+  duration_ms: 2.114417
+  type: 'test'
+  ...
+# Subtest: R2 nhảy 7 m/s, trọng lực 20: chỉ khi chạm đất, giữ nút không nhảy lần 2
+ok 28 - R2 nhảy 7 m/s, trọng lực 20: chỉ khi chạm đất, giữ nút không nhảy lần 2
+  ---
+  duration_ms: 0.636292
+  type: 'test'
+  ...
+# Subtest: R3 nhặt tự động trong 1.0 m (<=) và chênh cao <= 1.5 m; nhặt không cộng điểm [P2: điểm tính lúc nạp]
+ok 29 - R3 nhặt tự động trong 1.0 m (<=) và chênh cao <= 1.5 m; nhặt không cộng điểm [P2: điểm tính lúc nạp]
+  ---
+  duration_ms: 0.355583
+  type: 'test'
+  ...
+# Subtest: R3 không mang quá carry_capacity (10)
+ok 30 - R3 không mang quá carry_capacity (10)
+  ---
+  duration_ms: 0.40225
+  type: 'test'
+  ...
+# Subtest: R4 nạp đủ 10 thì thắp, +10/đom đóm nạp +100/đèn
+ok 31 - R4 nạp đủ 10 thì thắp, +10/đom đóm nạp +100/đèn
+  ---
+  duration_ms: 0.331125
+  type: 'test'
+  ...
+# Subtest: R4 nạp nhiều lần, đèn nhớ tiến độ; giữ nút không nạp lặp; ngoài 2.0 m không nạp
+ok 32 - R4 nạp nhiều lần, đèn nhớ tiến độ; giữ nút không nạp lặp; ngoài 2.0 m không nạp
+  ---
+  duration_ms: 0.628083
+  type: 'test'
+  ...
+# Subtest: R4 nhiều đèn trong tầm: chọn đèn gần nhất, bằng nhau thì id nhỏ hơn
+ok 33 - R4 nhiều đèn trong tầm: chọn đèn gần nhất, bằng nhau thì id nhỏ hơn
+  ---
+  duration_ms: 0.869125
+  type: 'test'
+  ...
+# Subtest: R8 thắng khi mọi đèn sáng; đèn đặt sẵn không được điểm; thưởng giây còn lại + lửa
+ok 34 - R8 thắng khi mọi đèn sáng; đèn đặt sẵn không được điểm; thưởng giây còn lại + lửa
+  ---
+  duration_ms: 1.627667
+  type: 'test'
+  ...
+# Subtest: R8 thắp đèn cuối đúng tick hết giờ vẫn thắng (all_lit trước dawn)
+ok 35 - R8 thắp đèn cuối đúng tick hết giờ vẫn thắng (all_lit trước dawn)
+  ---
+  duration_ms: 0.314458
+  type: 'test'
+  ...
+# Subtest: R6 Tỏa Sáng: tốn 3, tâm = chân + 0.8 m, chọn mục tiêu theo khoảng cách 3D <= 5, +5/Bóng Mực
+ok 36 - R6 Tỏa Sáng: tốn 3, tâm = chân + 0.8 m, chọn mục tiêu theo khoảng cách 3D <= 5, +5/Bóng Mực
+  ---
+  duration_ms: 0.662708
+  type: 'test'
+  ...
+# Subtest: R6 choáng 120 tick; 15 tick đầu đẩy lùi tổng 4 m; rồi đuổi tiếp [P2: v1.0 đẩy tức thì, choáng 3 s]
+ok 37 - R6 choáng 120 tick; 15 tick đầu đẩy lùi tổng 4 m; rồi đuổi tiếp [P2: v1.0 đẩy tức thì, choáng 3 s]
+  ---
+  duration_ms: 1.047791
+  type: 'test'
+  ...
+# Subtest: R6 đẩy lùi khi trùng vị trí đi theo +X; Tỏa Sáng lại làm mới choáng
+ok 38 - R6 đẩy lùi khi trùng vị trí đi theo +X; Tỏa Sáng lại làm mới choáng
+  ---
+  duration_ms: 0.228542
+  type: 'test'
+  ...
+# Subtest: R6 hồi chiêu 180 tick; không đủ 3 đom đóm thì không kích hoạt
+ok 39 - R6 hồi chiêu 180 tick; không đủ 3 đom đóm thì không kích hoạt
+  ---
+  duration_ms: 3.306375
+  type: 'test'
+  ...
+# Subtest: R5 Bóng Mực: trong 12 m thì chase với 4.0 m/s; xa thì wander; quá 18 m thì bỏ đuổi
+ok 40 - R5 Bóng Mực: trong 12 m thì chase với 4.0 m/s; xa thì wander; quá 18 m thì bỏ đuổi
+  ---
+  duration_ms: 14.759708
+  type: 'test'
+  ...
+# Subtest: R5 bị chạm: −1 lửa, rơi floor(mang/2) ra vành 1.5–2.5 m (TTL 480), bất tử 90 tick, bóng lùi 2 m/60 tick
+ok 41 - R5 bị chạm: −1 lửa, rơi floor(mang/2) ra vành 1.5–2.5 m (TTL 480), bất tử 90 tick, bóng lùi 2 m/60 tick
+  ---
+  duration_ms: 4.339667
+  type: 'test'
+  ...
+# Subtest: R5 chạm cần chênh cao <= 1.5 m; Bóng Mực không leo được vách tầng (Đêm 3)
+ok 42 - R5 chạm cần chênh cao <= 1.5 m; Bóng Mực không leo được vách tầng (Đêm 3)
+  ---
+  duration_ms: 3.16325
+  type: 'test'
+  ...
+# Subtest: R5 vùng an toàn 6 m: bóng bên ngoài bị chặn ở mép; bóng bên trong lúc thắp bị đẩy ra trong 30 tick, không gây sát thương
+ok 43 - R5 vùng an toàn 6 m: bóng bên ngoài bị chặn ở mép; bóng bên trong lúc thắp bị đẩy ra trong 30 tick, không gây sát thương
+  ---
+  duration_ms: 34.237708
+  type: 'test'
+  ...
+# Subtest: R8 thua khi hết lửa (no_flames) và khi hết giờ (dawn)
+ok 44 - R8 thua khi hết lửa (no_flames) và khi hết giờ (dawn)
+  ---
+  duration_ms: 4.30375
+  type: 'test'
+  ...
+# Subtest: C2 snapshot v1.1: tick 0 rồi night_start; đều mỗi --snapshot-every; dòng cuối end; đủ trường mới
+ok 45 - C2 snapshot v1.1: tick 0 rồi night_start; đều mỗi --snapshot-every; dòng cuối end; đủ trường mới
+  ---
+  duration_ms: 3.568583
+  type: 'test'
+  ...
+# Subtest: R3 lịch đom đóm: 20 lúc đầu, +1 ở tick 240, 480… tại điểm trống, trần 30
+ok 46 - R3 lịch đom đóm: 20 lúc đầu, +1 ở tick 240, 480… tại điểm trống, trần 30
+  ---
+  duration_ms: 4.493875
+  type: 'test'
+  ...
+# Subtest: R5 lịch Bóng Mực Đêm 1: 2 con ở tick 300 (spawning), rồi mỗi 480 tick; id S1, S2…; cách người chơi >= 15 m
+ok 47 - R5 lịch Bóng Mực Đêm 1: 2 con ở tick 300 (spawning), rồi mỗi 480 tick; id S1, S2…; cách người chơi >= 15 m
+  ---
+  duration_ms: 11.752833
+  type: 'test'
+  ...
+# Subtest: C3 tất định: cùng seed + inputs => giống từng byte; khác seed => khác (cả 3 Đêm)
+ok 48 - C3 tất định: cùng seed + inputs => giống từng byte; khác seed => khác (cả 3 Đêm)
+  ---
+  duration_ms: 297.092
+  type: 'test'
+  ...
+1..48
+# tests 48
+# suites 0
+# pass 48
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1022.813333
