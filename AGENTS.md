@@ -1,23 +1,26 @@
 # AGENTS.md — Đảo Đèn Lồng
 
-Game 3D (Three.js) + lõi tất định chạy headless theo Test Contract. Node ≥ 20, lõi không phụ thuộc thư viện.
+Game 3D (Three.js) + lõi tất định chạy headless theo **Test Contract v1.1** (Ticket-02). Node ≥ 20, lõi không phụ thuộc thư viện.
 
 ## Lệnh
-- Cài: `npm install` · Chơi: `npm start` → http://localhost:5173 (`?seed=7` vào thẳng ván, `?bot` bot tự chơi)
+- Cài: `npm install` · Chơi: `npm start` → http://localhost:5173 (`?night=2&seed=7` vào thẳng Đêm, `?bot` bot tự chơi, `?fps` hiện FPS)
 - Test: `npm test` — PHẢI xanh trước khi kết thúc (hook Stop chặn nếu đỏ)
-- Bằng chứng: `npm run proof -- --phase N` → `docs/proof/phase-N/` (skill `verify-phase`)
-- Headless: `node src/headless/cli.js --seed 1 --night 1 --ticks 600 --out out/run.jsonl [--scenario f] [--inputs f]`
+- Bằng chứng: `npm run proof -- --phase N` → `docs/proof/phase-N/` (skill `verify-phase`; thêm `--no-fps` để bỏ đo FPS)
+- Headless: `node src/headless/cli.js --seed 1 --night <1|2|3> --ticks 600 --out out/run.jsonl [--scenario f] [--inputs f]`
+- FPS: `npm start` rồi `node scripts/bench-fps.mjs --night 3 [--uncapped] [--software]`
 - Token: `npm run tokens -- --since <ISO>` (ghi vào docs/notes/ai-log.md)
 
 ## Bố cục
-- `src/core/sim.js` luật game (class Game, step = 1 tick). `io.js` kiểm tra file scenario/inputs. `runner.js` ra JSONL. `bot.js` bot chơi thử.
-- `src/headless/cli.js` CLI của contract. Mã thoát: 0 xong, 2 file sai định dạng, 1 lỗi khác.
-- `web/` chỉ VẼ trạng thái lõi + đọc bàn phím; không chứa luật game.
-- `game.contract.json` là nguồn số liệu duy nhất (sim đọc `tuning` từ đây). Đổi số chỉ ở đó; hằng số khác ở `WORLD` trong sim.js.
+- `src/core/sim.js`: class Game. `step()` = 1 tick theo đúng 12 bước của Ticket-02 (pause → bộ đếm → di chuyển + rơi → nhặt → đèn → vùng an toàn → Tỏa Sáng → AI → chạm → sinh → thắng/thua). Hằng số chuẩn không có trong contract nằm ở `STD`.
+- `src/core/maps.js`: 3 bản đồ chuẩn (`NIGHTS`), `groundAt` (null = biển mây), `inTower`. Góc: x = r·cosθ, z = r·sinθ.
+- `io.js` kiểm tra scenario/inputs (sai thì ném FormatError → mã 2). `runner.js` ra JSONL. `bot.js` bot chơi thử.
+- `web/main.js` chỉ VẼ trạng thái lõi + đọc bàn phím (màu lấy theo `PAL`, bảng màu chuẩn). `web/audio.js` âm thanh WebAudio.
+- `game.contract.json`: nguồn tuning duy nhất, phải khớp số chuẩn Ticket-02 (test C1 kiểm tra).
 
 ## Quy tắc
-- Yêu cầu: `docs/notes/phase-N.md` (trích từ lab board). Không bịa yêu cầu; chỗ mơ hồ ghi giả định vào file đó.
+- Yêu cầu: `docs/notes/phase-N.md` (trích từ lab board). Không bịa yêu cầu; chỗ mơ hồ ghi giả định (B*) vào file đó.
 - Lõi: không DOM, không `Math.random`/`Date` (dùng `this.rng`), 60 tick/s, tọa độ ra làm tròn 3 số.
-- Đổi luật → viết/sửa test trước (`tests/`, đặt tên theo mã yêu cầu R*/C*). Không xóa/skip test âm thầm; ghi lý do ở notes.
+- Trạng thái Bóng Mực chỉ được dùng 5 tên: spawning, wander, chase, recoil, stunned. Gió Lạc: idle, chase, flee, removed.
+- Đổi luật → viết/sửa test trước (`tests/*.test.js`, đặt tên theo mã R*/C*/F*/M*; helper ở `tests/helpers.js`). Test cũ bị luật mới thay thế: sửa và ghi nhãn `[Pn: lý do]` + bảng trong notes. Không skip âm thầm.
 - Sáng tạo thêm chỉ ở `web/` hoặc thực thể tắt khi headless; đầu ra headless không được đổi.
 - Không ghi "đạt" nếu chưa có file bằng chứng; không sửa tay output trong docs/proof.

@@ -1,6 +1,6 @@
-// Chạy toàn bộ kiểm chứng và ghi bằng chứng: npm run proof [-- --phase 1]
+// Chạy toàn bộ kiểm chứng và ghi bằng chứng: npm run proof [-- --phase 2] [--no-fps]
 // Kết quả: docs/proof/phase-N/{proof-summary.md, test-report.txt, runs/*}
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
@@ -9,7 +9,7 @@ import { loadContract } from '../src/headless/contract.js';
 import { playBot } from '../src/core/bot.js';
 
 const ai = process.argv.indexOf('--phase');
-const phase = ai > 0 ? process.argv[ai + 1] : '1';
+const phase = ai > 0 ? process.argv[ai + 1] : '2';
 const dir = `docs/proof/phase-${phase}`;
 mkdirSync(`${dir}/runs`, { recursive: true });
 const tmp = os.tmpdir();
@@ -37,65 +37,90 @@ writeFileSync(`${dir}/test-report.txt`, test.stdout + test.stderr);
 const n = (k) => new RegExp(`# ${k} (\\d+)`).exec(test.stdout)?.[1];
 check('Test đơn vị + scenario (`npm test`)', test.status === 0, `pass ${n('pass')}, fail ${n('fail')} → [test-report.txt](test-report.txt)`);
 
-// 2) tất định qua CLI (đúng lệnh trong game.contract.json)
+// 2) tất định qua CLI cho từng Đêm (đúng lệnh trong game.contract.json)
 const demo = 'scenarios/demo-inputs.json';
-const outA = `${dir}/runs/demo-seed42.jsonl`;
-const outB = join(tmp, 'ddl-demo-seed42-b.jsonl');
-const outC = join(tmp, 'ddl-demo-seed43.jsonl');
-const ra = headless('--seed', '42', '--night', '1', '--inputs', demo, '--ticks', '3000', '--out', outA);
-const rb = headless('--seed', '42', '--night', '1', '--inputs', demo, '--ticks', '3000', '--out', outB);
-const rc = headless('--seed', '43', '--night', '1', '--inputs', demo, '--ticks', '3000', '--out', outC);
-const [ha, hb, hc] = [outA, outB, outC].map(sha);
-check('Tất định: seed 42 chạy 2 lần giống từng byte', ra.status === 0 && rb.status === 0 && ha === hb, `sha256 ${ha.slice(0, 16)}… = ${hb.slice(0, 16)}… → [runs/demo-seed42.jsonl](runs/demo-seed42.jsonl)`);
-check('Khác seed (43) → output khác', rc.status === 0 && ha !== hc, `sha256 ${hc.slice(0, 16)}…`);
+for (const night of [1, 2, 3]) {
+  const outA = `${dir}/runs/demo-night${night}-seed42.jsonl`;
+  const outB = join(tmp, `ddl-demo-${night}-b.jsonl`);
+  const outC = join(tmp, `ddl-demo-${night}-c.jsonl`);
+  const ra = headless('--seed', '42', '--night', String(night), '--inputs', demo, '--ticks', '3000', '--out', outA);
+  const rb = headless('--seed', '42', '--night', String(night), '--inputs', demo, '--ticks', '3000', '--out', outB);
+  const rc = headless('--seed', '43', '--night', String(night), '--inputs', demo, '--ticks', '3000', '--out', outC);
+  const [ha, hb, hc] = [outA, outB, outC].map(sha);
+  check(`Tất định Đêm ${night}: seed 42 hai lần giống từng byte, seed 43 khác`, ra.status === 0 && rb.status === 0 && rc.status === 0 && ha === hb && ha !== hc, `sha256 ${ha.slice(0, 12)}… = ${hb.slice(0, 12)}… ≠ ${hc.slice(0, 12)}… → [runs/demo-night${night}-seed42.jsonl](runs/demo-night${night}-seed42.jsonl)`);
+}
 
 // 3) mã thoát với file sai định dạng
 const bad = join(tmp, 'ddl-bad-inputs.json');
 writeFileSync(bad, JSON.stringify({ frames: [{ tick: 3 }, { tick: 1 }] }));
-const rbad = headless('--seed', '1', '--night', '1', '--inputs', bad, '--ticks', '10', '--out', join(tmp, 'ddl-bad.jsonl'));
+const rbad = headless('--seed', '1', '--night', '2', '--inputs', bad, '--ticks', '10', '--out', join(tmp, 'ddl-bad.jsonl'));
 check('File inputs sai định dạng → mã thoát 2', rbad.status === 2, `status ${rbad.status}, stderr: \`${rbad.stderr.trim().slice(0, 90)}\``);
 
-// 4) chơi được từ đầu tới thắng/thua: bot chơi 10 seed, phát lại seed 1 qua CLI
-const seeds = Array.from({ length: 10 }, (_, i) => i + 1);
-const games = seeds.map((s) => ({ seed: s, ...playBot(T, s) }));
-const won = games.filter((g) => g.result === 'won').length;
-check('Đêm 1 chơi được tới kết thúc (bot, 10 seed)', games.every((g) => g.result !== 'playing'), `${won}/10 thắng, còn lại thua; bảng bên dưới`);
-const g1 = games[0];
-const botInputs = `${dir}/runs/bot-seed1-inputs.json`;
-const botOut = `${dir}/runs/bot-seed1.jsonl`;
-writeFileSync(botInputs, JSON.stringify({ frames: g1.frames }));
-const rbot = headless('--seed', '1', '--night', '1', '--inputs', botInputs, '--ticks', String(T.night1_duration_s * 60), '--out', botOut);
-const e = endOf(botOut);
-check(
-  'Phát lại input của bot qua CLI ra đúng kết quả ván',
-  rbot.status === 0 && e.state === g1.result && e.score === g1.score && e.ticks === g1.ticks,
-  `end ${JSON.stringify(e)} → [runs/bot-seed1.jsonl](runs/bot-seed1.jsonl)`,
-);
+// 4) hiệu năng headless: một Đêm đầy đủ mỗi Đêm (tối đa 21600 tick) phải <= 30 s
+for (const night of [1, 2, 3]) {
+  const ticks = T[`night${night}_duration_s`] * 60;
+  const perfOut = join(tmp, `ddl-perf-${night}.jsonl`);
+  const rp = headless('--seed', '5', '--night', String(night), '--scenario', 'scenarios/long-night.json', '--ticks', String(ticks), '--out', perfOut);
+  const pe = endOf(perfOut);
+  check(`Hiệu năng headless Đêm ${night}: ${ticks} tick <= 30 s`, rp.status === 0 && pe.ticks === ticks && rp.ms <= 30000, `${rp.ms.toFixed(0)} ms (gồm khởi động Node)`);
+}
 
-// 5) hiệu năng headless: một đêm đầy đủ 18000 tick
-const perfOut = join(tmp, 'ddl-perf.jsonl');
-const rp = headless('--seed', '5', '--night', '1', '--scenario', 'scenarios/long-night.json', '--ticks', String(T.night1_duration_s * 60), '--out', perfOut);
-const pe = endOf(perfOut);
-check('Hiệu năng: 1 đêm đủ 18000 tick (đo cả khởi động Node)', rp.status === 0 && pe.ticks === T.night1_duration_s * 60, `${rp.ms.toFixed(0)} ms, end ${JSON.stringify(pe)}`);
+// 5) chơi được: bot 10 seed mỗi Đêm; phát lại 1 ván thắng qua CLI
+const games = [];
+for (const night of [1, 2, 3]) for (let s = 1; s <= 10; s++) games.push({ night, seed: s, ...playBot(T, s, night) });
+const won = (nt) => games.filter((g) => g.night === nt && g.result === 'won').length;
+check('Mỗi ván chơi tới kết thúc (bot, 3 Đêm × 10 seed)', games.every((g) => g.result === 'won' || g.result === 'lost'), `thắng Đêm 1: ${won(1)}/10, Đêm 2: ${won(2)}/10, Đêm 3: ${won(3)}/10 (bảng bên dưới)`);
+const gw = games.find((g) => g.result === 'won') ?? games[0];
+const botInputs = `${dir}/runs/bot-night${gw.night}-seed${gw.seed}-inputs.json`;
+const botOut = `${dir}/runs/bot-night${gw.night}-seed${gw.seed}.jsonl`;
+writeFileSync(botInputs, JSON.stringify({ frames: gw.frames }));
+const rbot = headless('--seed', String(gw.seed), '--night', String(gw.night), '--inputs', botInputs, '--ticks', '21600', '--out', botOut);
+const e = endOf(botOut);
+check(`Phát lại input bot (Đêm ${gw.night}, seed ${gw.seed}) qua CLI ra đúng kết quả`, rbot.status === 0 && e.state === gw.result && e.score === gw.score && e.ticks === gw.ticks, `end ${JSON.stringify(e)} → [runs/${botOut.split('/').pop()}](runs/${botOut.split('/').pop()})`);
+
+// 6) FPS bản thường ở 1280×720 (Chrome, GPU mặc định) — tự bật server tạm
+let fpsRows = '';
+if (!process.argv.includes('--no-fps')) {
+  const port = 5600 + Math.floor(Math.random() * 300);
+  const srv = spawn(process.execPath, ['server.mjs'], { env: { ...process.env, PORT: String(port) }, stdio: 'ignore' });
+  await new Promise((r) => setTimeout(r, 800));
+  const bench = (extra) => {
+    const r = spawnSync(process.execPath, ['scripts/bench-fps.mjs', '--url', `http://127.0.0.1:${port}`, '--secs', '8', ...extra], { encoding: 'utf8', timeout: 90000 });
+    try {
+      return JSON.parse(r.stdout.trim().split('\n').at(-1));
+    } catch {
+      return null;
+    }
+  };
+  const res = [];
+  for (const night of ['1', '2', '3']) res.push({ night, capped: bench(['--night', night]), uncapped: bench(['--night', night, '--uncapped']) });
+  srv.kill();
+  const ok = res.every((r) => r.capped && r.capped.avgFps >= 29.5);
+  check('FPS bản thường 1280×720 >= 30 (Chrome, GPU)', ok, 'bảng FPS bên dưới; headless Chrome khóa trần ~30 FPS nên đo thêm bản bỏ trần');
+  fpsRows = `\n## FPS bản thường (scripts/bench-fps.mjs, bot chơi 8 s, bỏ 1 s đầu)\n\n| Đêm | Trung bình (trần headless ~30) | Trung bình (bỏ trần) | Khung hình | Renderer |\n|---|---:|---:|---|---|\n${res
+    .map((r) => `| ${r.night} | ${r.capped?.avgFps ?? '—'} | ${r.uncapped?.avgFps ?? '—'} | ${r.capped?.size ?? '—'} | ${r.capped?.renderer ?? '—'} |`)
+    .join('\n')}\n`;
+}
 
 const dirty = git('status', '--porcelain', '--', 'src', 'web', 'tests', 'game.contract.json', 'scenarios', 'package.json');
 const md = `# Bằng chứng tự động — Phase ${phase}
 
-Sinh bởi \`npm run proof\` (scripts/proof.mjs). Không sửa tay file này.
+Sinh bởi \`npm run proof -- --phase ${phase}\` (scripts/proof.mjs). Không sửa tay file này.
 
 - Thời điểm: ${new Date().toISOString()}
-- Commit mã: \`${git('rev-parse', '--short', 'HEAD')}\`${dirty ? ' (có thay đổi chưa commit trong src/tests)' : ''}
+- Commit mã: \`${git('rev-parse', '--short', 'HEAD')}\`${dirty ? ' (có thay đổi chưa commit trong src/tests/web)' : ''}
 - Máy: ${os.type()} ${os.release()} · ${os.cpus()[0]?.model} · ${os.cpus().length} nhân · Node ${process.version}
+- Contract: v${contract.contract_version}
 
 | Kiểm tra | Kết quả | Chi tiết |
 |---|---|---|
 ${rows.join('\n')}
+${fpsRows}
+## Bot chơi thử (src/core/bot.js, chỉ dùng input như người chơi)
 
-## Bot chơi thử 10 seed (src/core/bot.js, chỉ dùng input như người chơi)
-
-| seed | kết quả | lý do | thời gian (s) | điểm | đèn thắp | lửa còn |
-|---:|---|---|---:|---:|---:|---:|
-${games.map((g) => `| ${g.seed} | ${g.result} | ${g.reason} | ${(g.ticks / 60).toFixed(1)} | ${g.score} | ${g.lit}/5 | ${g.flames} |`).join('\n')}
+| Đêm | seed | kết quả | lý do | thời gian (s) | điểm | đèn | lửa còn |
+|---:|---:|---|---|---:|---:|---:|---:|
+${games.map((g) => `| ${g.night} | ${g.seed} | ${g.result} | ${g.reason} | ${(g.ticks / 60).toFixed(1)} | ${g.score} | ${g.lit}/${g.total} | ${g.flames} |`).join('\n')}
 `;
 writeFileSync(`${dir}/proof-summary.md`, md);
 console.log(md);
