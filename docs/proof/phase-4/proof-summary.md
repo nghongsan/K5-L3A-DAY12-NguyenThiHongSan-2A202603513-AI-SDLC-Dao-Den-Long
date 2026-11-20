@@ -2,8 +2,8 @@
 
 Sinh bởi `npm run proof -- --phase 4` (scripts/proof.mjs). Không sửa tay file này.
 
-- Thời điểm: 2026-11-20T12:42:07.163Z
-- Commit mã: `fc1e911` (có thay đổi chưa commit trong src/tests/web)
+- Thời điểm: 2026-11-20T12:50:20.218Z
+- Commit mã: `8075613`
 - Máy: Darwin 23.4.0 · Apple M1 · 8 nhân · Node v22.23.5
 - Contract: v1.3
 
@@ -14,11 +14,12 @@ Sinh bởi `npm run proof -- --phase 4` (scripts/proof.mjs). Không sửa tay fi
 | Tất định Đêm 2: seed 42 hai lần giống từng byte, seed 43 khác | ĐẠT | sha256 921f7538cb44… = 921f7538cb44… ≠ bab17f83dd82… → [runs/demo-night2-seed42.jsonl](runs/demo-night2-seed42.jsonl) |
 | Tất định Đêm 3: seed 42 hai lần giống từng byte, seed 43 khác | ĐẠT | sha256 59c8fbb53750… = 59c8fbb53750… ≠ f7218e16ec0f… → [runs/demo-night3-seed42.jsonl](runs/demo-night3-seed42.jsonl) |
 | File inputs sai định dạng → mã thoát 2 | ĐẠT | status 2, stderr: `headless: inputs sai định dạng: frames[1].tick phải tăng nghiêm ngặt (1 sau 3)` |
-| Hiệu năng headless Đêm 1: 14400 tick <= 30 s | ĐẠT | 133 ms (gồm khởi động Node) |
-| Hiệu năng headless Đêm 2: 16200 tick <= 30 s | ĐẠT | 168 ms (gồm khởi động Node) |
-| Hiệu năng headless Đêm 3: 18000 tick <= 30 s | ĐẠT | 252 ms (gồm khởi động Node) |
+| Hiệu năng headless Đêm 1: 14400 tick <= 30 s | ĐẠT | 125 ms (gồm khởi động Node) |
+| Hiệu năng headless Đêm 2: 16200 tick <= 30 s | ĐẠT | 315 ms (gồm khởi động Node) |
+| Hiệu năng headless Đêm 3: 18000 tick <= 30 s | ĐẠT | 434 ms (gồm khởi động Node) |
 | Mỗi ván chơi tới kết thúc (bot, 3 Đêm × 10 seed) | ĐẠT | thắng Đêm 1: 9/10, Đêm 2: 0/10, Đêm 3: 0/10 (bảng bên dưới) |
 | Phát lại input bot (Đêm 1, seed 1) qua CLI ra đúng kết quả | ĐẠT | end {"type":"end","ticks":14400,"state":"won","score":1221} → [runs/bot-night1-seed1.jsonl](runs/bot-night1-seed1.jsonl) |
+| Giao diện thật qua Chrome (scripts/ui-smoke.mjs) | ĐẠT | 18 bước đạt, 0 lỗi → [ui-smoke.txt](ui-smoke.txt) |
 
 ## Bot chơi thử (src/core/bot.js, chỉ dùng input như người chơi)
 

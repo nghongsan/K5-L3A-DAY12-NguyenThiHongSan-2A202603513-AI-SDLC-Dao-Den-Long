@@ -1,0 +1,18 @@
+PASS Menu chính có Chơi, Bảng xếp hạng, Cài đặt
+PASS Enter → giới thiệu Đêm 1 (Ông Đăng)
+PASS Enter → đang chơi (overlay ẩn, HUD hiện)
+PASS Logic chạy khi đang chơi
+PASS Esc → Tạm dừng, logic dừng hoàn toàn
+PASS Cài đặt có Đổi phím, Giảm chuyển động, Chữ lớn, Bảng màu dễ phân biệt
+PASS Đổi phím trùng bị từ chối và báo — ⚠ Phím S đang dùng cho “Đi xuống”. Hãy chọn phím khác.
+PASS Đổi phím hợp lệ được lưu
+PASS Khôi phục phím mặc định
+PASS Chữ lớn ×1.25 (font gốc 22.5px)
+PASS Esc lần nữa → tiếp tục chơi
+PASS Chữ HUD nhỏ nhất >= 18px ở 1280×720 — 18px
+PASS Thua → màn kết quả có ô nhập tên
+PASS Tên 2 ký tự bị từ chối
+PASS Lưu tên tiếng Việt → màn Bảng xếp hạng có tên
+PASS Đã ghi xuống đĩa, achieved_at có múi giờ — {"name":"Mây_Thử","score":0,"nights_won":0,"achieved_at":"2026-11-20T19:50:17+07:00","seed":68475659}
+PASS Enter → về menu
+PASS Không có lỗi JS — []
