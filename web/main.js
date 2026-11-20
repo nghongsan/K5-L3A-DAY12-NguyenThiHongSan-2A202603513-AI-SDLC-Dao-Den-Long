@@ -1,7 +1,7 @@
 // Bản có giao diện: Three.js chỉ VẼ trạng thái của lõi src/core/sim.js, không tự đổi luật game.
 // Chuỗi: Menu → giới thiệu Đêm (lời Ông Đăng) → chơi → kết quả → Đêm kế tiếp → Bình Minh.
 import * as THREE from 'three';
-import { Game, TICK_RATE, NIGHTS } from '/src/core/sim.js';
+import { Game, TICK_RATE, NIGHTS, mulberry32 } from '/src/core/sim.js';
 import { botInput } from '/src/core/bot.js';
 import { Sfx } from '/web/audio.js';
 
@@ -23,8 +23,14 @@ const INTRO = {
 
 // ---------- cài đặt (lưu giữa các lần mở) ----------
 const SETTINGS_KEY = 'dao-den-long-settings';
-const settings = { volume: 0.7, sensitivity: 1, colorblind: false };
+// Đổi phím (Ticket-04): mọi hành động; phát hiện trùng; khôi phục mặc định; được lưu
+const DEFAULT_KEYS = { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', dash: 'ShiftLeft', interact: 'KeyE', pulse: 'KeyF', pause: 'Escape', camLeft: 'ArrowLeft', camRight: 'ArrowRight' };
+const ACTIONS = { up: 'Đi lên', down: 'Đi xuống', left: 'Sang trái', right: 'Sang phải', jump: 'Nhảy', dash: 'Lướt', interact: 'Tương tác (nạp/châm)', pulse: 'Tỏa Sáng', pause: 'Tạm dừng', camLeft: 'Xoay camera trái', camRight: 'Xoay camera phải' };
+const settings = { volume: 0.7, sensitivity: 1, colorblind: false, reducedMotion: false, largeText: false, keys: { ...DEFAULT_KEYS } };
 try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')); } catch { /* chế độ riêng tư */ }
+settings.keys = { ...DEFAULT_KEYS, ...settings.keys };
+const keyName = (code) => ({ Space: 'Space', ShiftLeft: 'Shift trái', ShiftRight: 'Shift phải', Escape: 'Esc', ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', ControlLeft: 'Ctrl', Enter: 'Enter', Tab: 'Tab' }[code] ?? code.replace(/^Key/, '').replace(/^Digit/, ''));
+const K = (a) => keyName(settings.keys[a]);
 const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* bỏ qua */ } };
 const sfx = new Sfx();
 sfx.setVolume(settings.volume);
@@ -199,6 +205,7 @@ function applyPalette() {
   edgeMat.color.setHex(settings.colorblind ? 0x00b3ff : PAL.shadeEdge);
   eyeMat.color.setHex(settings.colorblind ? 0x00b3ff : 0xe6d0ff);
   document.documentElement.style.setProperty('--danger', settings.colorblind ? '#FFFFFF' : '#FF5A5F');
+  document.documentElement.style.setProperty('--ui-scale', settings.largeText ? '1.25' : '1'); // chữ lớn ×1.25
 }
 function makeShade() {
   const g = new THREE.Group();
@@ -269,10 +276,16 @@ let botMode = params.has('bot');
 let botMem = {};
 let lastCountdown = null;
 let prevGrounded = true;
+let runSeed = 1; // seed của lượt chơi (Đêm n dùng runSeed + n − 1); lưu vào bảng xếp hạng
+let nightsWon = 0;
+let rebinding = null; // hành động đang chờ nhấn phím mới
+let shake = 0; // rung camera khi bị đánh (tắt khi Giảm chuyển động)
+let lastShade = null; // Bóng Mực mới xuất hiện: mũi tên ở mép màn hình trong 3 s
+const lowFuel = new Set();
 
-function newNight(n, seed = Math.floor(Math.random() * 2 ** 31), scenario = {}) {
+function newNight(n, seed = Math.floor(Math.random() * 2 ** 31), scenario = {}, opts = {}) {
   night = n;
-  game = new Game({ tuning, seed, night: n, scenario });
+  game = new Game({ tuning, seed, night: n, scenario, benchMode: !!opts.benchMode });
   buildWorld(n);
   views = { lanterns: game.lanterns.map(makeLantern), motes: new Map(), shades: new Map(), drifters: new Map(), charms: game.charms.map(makeCharm) };
   camYaw = 0;
@@ -288,27 +301,27 @@ function show(html) {
   $('card').innerHTML = html;
   $('overlay').hidden = !html;
   $('hud').hidden = !(mode === 'play' || mode === 'paused' || mode === 'result');
-  $('card').querySelector('button')?.focus();
+  ($('card').querySelector('input[type=text]') ?? $('card').querySelector('button'))?.focus();
 }
 
-const controls = `<table>
-  <tr><td><kbd>W A S D</kbd> / <kbd>↑ ↓</kbd></td><td>Di chuyển</td></tr>
-  <tr><td><kbd>← →</kbd> / kéo chuột</td><td>Xoay camera</td></tr>
-  <tr><td><kbd>Space</kbd></td><td>Nhảy</td></tr><tr><td><kbd>Shift</kbd></td><td>Lướt</td></tr>
-  <tr><td><kbd>E</kbd></td><td>Nạp ánh sáng vào đèn</td></tr><tr><td><kbd>F</kbd></td><td>Tỏa Sáng (3 đom đóm)</td></tr>
-  <tr><td><kbd>Esc</kbd> / <kbd>P</kbd></td><td>Tạm dừng</td></tr><tr><td><kbd>B</kbd></td><td>Bot chơi thử</td></tr></table>`;
+const controls = () => `<table>
+  <tr><td><kbd>${K('up')} ${K('left')} ${K('down')} ${K('right')}</kbd></td><td>Di chuyển</td></tr>
+  <tr><td><kbd>${K('camLeft')} ${K('camRight')}</kbd> / kéo chuột</td><td>Xoay camera</td></tr>
+  <tr><td><kbd>${K('jump')}</kbd></td><td>Nhảy</td></tr><tr><td><kbd>${K('dash')}</kbd></td><td>Lướt</td></tr>
+  <tr><td><kbd>${K('interact')}</kbd></td><td>Nạp ánh sáng / châm dầu</td></tr><tr><td><kbd>${K('pulse')}</kbd></td><td>Tỏa Sáng (3 đom đóm)</td></tr>
+  <tr><td><kbd>${K('pause')}</kbd></td><td>Tạm dừng</td></tr><tr><td><kbd>B</kbd></td><td>Bot chơi thử</td></tr></table>`;
 
 function toMenu() {
   mode = 'menu';
   sfx.stopMusic();
   totalScore = 0;
   show(`<h1>Đảo Đèn Lồng</h1><p>Giúp <b>Mây</b>, người giữ đèn nhỏ tuổi, thắp lại ánh sáng cho ba hòn đảo trước bình minh.</p>
-    ${controls}<button data-act="start">Chơi (Enter)</button><button data-act="settings">Cài đặt</button>`);
+    ${controls()}<button data-act="start">Chơi (Enter)</button><button data-act="board">Bảng xếp hạng</button><button data-act="settings">Cài đặt</button>`);
 }
 
 function toIntro(n) {
   mode = 'intro';
-  newNight(n);
+  newNight(n, runSeed + n - 1);
   const [a, b] = INTRO[n];
   show(`<h2>Đêm ${n}</h2><h1>${NIGHTS[n].name}</h1><p class="quote">Ông Đăng: “${a}”</p><p class="quote">“${b}”</p>
     <p>${game.lanterns.length} đèn · giữ ít nhất <b>${game.litNeeded()}</b> đèn sáng khi trời sáng (${Math.round(game.ticksLeft / 60)} giây)</p><button data-act="play">Bắt đầu (Enter)</button>`);
@@ -327,19 +340,24 @@ function toPause() {
     <button data-act="settings">Cài đặt</button><button data-act="menu">Về menu</button>`);
 }
 
-function toSettings(back) {
-  settingsBack = back;
+function toSettings(back, msg = '') {
+  settingsBack = back ?? settingsBack;
   mode = 'settings';
+  const rows = Object.keys(ACTIONS)
+    .map((a) => `<tr><td>${ACTIONS[a]}</td><td><kbd>${rebinding === a ? '…' : K(a)}</kbd></td><td><button class="small" data-act="bind" data-key="${a}">Đổi</button></td></tr>`)
+    .join('');
   show(`<h1>Cài đặt</h1>
     <label>Âm lượng: <b id="vol-v">${Math.round(settings.volume * 100)}</b>%</label><input id="vol" type="range" min="0" max="100" value="${Math.round(settings.volume * 100)}">
     <label>Độ nhạy chuột: <b id="sen-v">${settings.sensitivity.toFixed(1)}</b></label><input id="sen" type="range" min="2" max="30" value="${Math.round(settings.sensitivity * 10)}">
     <label><input id="cb" type="checkbox" ${settings.colorblind ? 'checked' : ''}> Bảng màu dễ phân biệt</label>
-    <p style="opacity:.7">Cài đặt được lưu cho lần mở sau.</p><button data-act="back">Xong</button>`);
-  $('cb').onchange = (e) => {
-    settings.colorblind = e.target.checked;
-    applyPalette();
-    saveSettings();
-  };
+    <label><input id="rm" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}> Giảm chuyển động (tắt rung camera, chớp màn hình)</label>
+    <label><input id="lt" type="checkbox" ${settings.largeText ? 'checked' : ''}> Chữ lớn (×1.25)</label>
+    <h2>Phím điều khiển</h2>
+    <div class="warn" id="bind-msg">${msg || (rebinding ? `Nhấn phím mới cho “${ACTIONS[rebinding]}” (Esc để hủy)` : '')}</div>
+    <table>${rows}</table>
+    <button data-act="resetkeys">Khôi phục mặc định</button>
+    <p style="opacity:.8">Cài đặt được lưu cho lần mở sau.</p><button data-act="back">Xong</button>`);
+  if (rebinding) $('bind-msg').focus?.();
   $('vol').oninput = (e) => {
     settings.volume = e.target.value / 100;
     $('vol-v').textContent = e.target.value;
@@ -351,6 +369,82 @@ function toSettings(back) {
     $('sen-v').textContent = settings.sensitivity.toFixed(1);
     saveSettings();
   };
+  const toggle = (id, key) => {
+    $(id).onchange = (e) => {
+      settings[key] = e.target.checked;
+      applyPalette();
+      saveSettings();
+    };
+  };
+  toggle('cb', 'colorblind');
+  toggle('rm', 'reducedMotion');
+  toggle('lt', 'largeText');
+}
+
+/** Gán phím mới; trùng phím với hành động khác thì báo và giữ nguyên. */
+function bindKey(code) {
+  const action = rebinding;
+  rebinding = null;
+  if (code === 'Escape' && action !== 'pause') return toSettings(undefined, 'Đã hủy đổi phím.');
+  const clash = Object.keys(settings.keys).find((a) => a !== action && settings.keys[a] === code);
+  if (clash) return toSettings(undefined, `⚠ Phím ${keyName(code)} đang dùng cho “${ACTIONS[clash]}”. Hãy chọn phím khác.`);
+  settings.keys[action] = code;
+  saveSettings();
+  toSettings(undefined, `Đã gán ${keyName(code)} cho “${ACTIONS[action]}”.`);
+}
+
+// ---------- bảng xếp hạng ----------
+const isoLocal = (d) => {
+  const pad = (n) => String(Math.abs(n)).padStart(2, '0');
+  const off = -d.getTimezoneOffset();
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${off >= 0 ? '+' : '-'}${pad(Math.floor(Math.abs(off) / 60))}:${pad(Math.abs(off) % 60)}`;
+};
+const NAME_RE = /^[\p{L}\p{N}_]{3,12}$/u;
+async function loadBoard() {
+  try {
+    const r = await fetch('/api/leaderboard');
+    if (r.ok) return (await r.json()).entries;
+  } catch { /* không có server: dùng bản lưu trong trình duyệt */ }
+  try {
+    return JSON.parse(localStorage.getItem('dao-den-long-board') || '[]');
+  } catch {
+    return [];
+  }
+}
+async function toBoard(highlight = null) {
+  mode = 'board';
+  const entries = await loadBoard();
+  const rows = entries.length
+    ? entries
+        .map((e, i) => `<tr class="${highlight && e.achieved_at === highlight.achieved_at && e.name === highlight.name ? 'me' : ''}"><td>${i + 1}</td><td>${e.name.replace(/[<>&]/g, '')}</td><td>${e.score}</td><td>${e.nights_won}/3</td><td>${e.achieved_at.slice(0, 16).replace('T', ' ')}</td></tr>`)
+        .join('')
+    : '<tr><td colspan="5">Chưa có ai — hãy là người đầu tiên!</td></tr>';
+  show(`<h1>Bảng xếp hạng</h1><table><tr><th>#</th><th>Tên</th><th>Điểm</th><th>Đêm thắng</th><th>Lúc</th></tr>${rows}</table><button data-act="menu">Về menu (Enter)</button>`);
+}
+const saveForm = () => `<p>Lưu điểm <b>${totalScore}</b> (${nightsWon} Đêm thắng) vào bảng xếp hạng:</p>
+  <input id="lbname" type="text" maxlength="12" placeholder="Tên 3–12 ký tự" autocomplete="off"> <div class="warn" id="lb-msg"></div>
+  <button data-act="save">Lưu điểm</button>`;
+async function saveScore() {
+  const name = ($('lbname')?.value ?? '').trim().normalize('NFC');
+  if (!NAME_RE.test(name)) {
+    $('lb-msg').textContent = '⚠ Tên 3–12 ký tự: chữ (có dấu được), số hoặc _';
+    return;
+  }
+  const entry = { name, score: totalScore, nights_won: nightsWon, achieved_at: isoLocal(new Date()), seed: runSeed };
+  try {
+    const r = await fetch('/api/leaderboard', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(entry) });
+    if (!r.ok) throw new Error((await r.json()).error);
+  } catch (e) {
+    if (e.message && !/fetch/i.test(e.message)) {
+      $('lb-msg').textContent = `⚠ ${e.message}`;
+      return;
+    }
+    const list = await loadBoard();
+    list.push(entry);
+    list.sort((a, b) => b.score - a.score || Date.parse(a.achieved_at) - Date.parse(b.achieved_at));
+    try { localStorage.setItem('dao-den-long-board', JSON.stringify(list.slice(0, 10))); } catch { /* bỏ qua */ }
+  }
+  toBoard(entry);
 }
 
 function toResult() {
@@ -359,11 +453,12 @@ function toResult() {
   sfx.play(r.result === 'won' ? 'win' : 'lose');
   if (r.result === 'won') {
     totalScore += game.score;
+    nightsWon++;
     if (night === 3) {
       mode = 'dawn';
       sfx.stopMusic();
       show(`<h1>Bình Minh</h1><p>Ba hòn đảo đã sáng trở lại. Ông Đăng mỉm cười: “Cháu giỏi lắm, Mây.”</p>
-        <div class="big">Tổng điểm: ${totalScore}</div><button data-act="menu">Về menu (Enter)</button>`);
+        <div class="big">Tổng điểm: ${totalScore}</div>${saveForm()}<button data-act="menu">Về menu</button>`);
       return;
     }
     mode = 'result';
@@ -373,45 +468,73 @@ function toResult() {
     mode = 'result';
     const why = r.reason === 'dawn' ? `Bình minh đến nhưng chưa đủ ${game.litNeeded()} đèn sáng…` : 'Mây đã hết Ngọn Lửa…';
     show(`<h2>Đêm ${night} thất bại</h2><h1>${why}</h1><p>Đèn đã thắp: ${lit}/${game.lanterns.length} · Điểm Đêm: ${game.score}</p>
-      <button data-act="retry">Chơi lại Đêm ${night} (Enter)</button><button data-act="menu">Về menu</button>`);
+      <button data-act="retry">Chơi lại Đêm ${night}</button>${saveForm()}<button data-act="menu">Về menu</button>`);
   }
 }
 
 const actions = {
-  start: () => toIntro(1),
+  start: () => {
+    runSeed = Math.floor(Math.random() * 2 ** 31);
+    totalScore = 0;
+    nightsWon = 0;
+    toIntro(1);
+  },
+  board: () => toBoard(),
+  save: saveScore,
+  bind: (key) => {
+    rebinding = key;
+    toSettings();
+  },
+  resetkeys: () => {
+    settings.keys = { ...DEFAULT_KEYS };
+    saveSettings();
+    toSettings(undefined, 'Đã khôi phục phím mặc định.');
+  },
   play: toPlay,
   resume: toPlay,
   restart: () => { toIntro(night); },
   settings: () => toSettings(mode),
   back: () => (settingsBack === 'paused' ? toPause() : toMenu()),
-  menu: toMenu,
+  menu: () => {
+    toMenu();
+  },
   next: () => toIntro(night + 1),
   retry: () => toIntro(night),
 };
 $('card').addEventListener('click', (e) => {
-  const act = e.target.closest('button')?.dataset.act;
+  const btn = e.target.closest('button');
+  const act = btn?.dataset.act;
   if (act) {
     sfx.ensure();
-    actions[act]();
+    actions[act](btn.dataset.key);
   }
 });
 
 // ---------- input ----------
 const keys = new Set();
 addEventListener('keydown', (e) => {
+  if (rebinding) {
+    e.preventDefault();
+    return bindKey(e.code);
+  }
+  if (e.target?.tagName === 'INPUT' && e.target.type === 'text') {
+    if (e.code === 'Enter') saveScore();
+    return; // đang gõ tên: không coi là phím game
+  }
   keys.add(e.code);
-  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) e.preventDefault();
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code) || Object.values(settings.keys).includes(e.code)) e.preventDefault();
   sfx.ensure();
   if (e.code === 'F3') { $('fps').hidden = !$('fps').hidden; e.preventDefault(); }
-  if (e.code === 'KeyB') { botMode = !botMode; botMem = {}; }
-  if (e.code === 'Escape' || e.code === 'KeyP') {
+  if (e.code === 'KeyB' && !Object.values(settings.keys).includes('KeyB')) { botMode = !botMode; botMem = {}; }
+  if (e.code === settings.keys.pause || (e.code === 'Escape' && mode !== 'play')) {
     if (mode === 'play') toPause();
     else if (mode === 'paused') toPlay();
     else if (mode === 'settings') actions.back();
+    else if (mode === 'board') toMenu();
     return;
   }
   if (e.code === 'Enter' && !e.repeat) {
-    const primary = { menu: 'start', intro: 'play', result: game?.result?.result === 'won' ? 'next' : 'retry', dawn: 'menu' }[mode];
+    const primary = { menu: 'start', intro: 'play', result: game?.result?.result === 'won' ? 'next' : null, board: 'menu' }[mode];
     if (primary) {
       e.preventDefault();
       actions[primary]();
@@ -421,7 +544,7 @@ addEventListener('keydown', (e) => {
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('blur', () => {
   keys.clear();
-  if (mode === 'play' && !params.has('bench')) toPause();
+  if (mode === 'play' && !params.has('bench') && !benchScene) toPause();
 });
 let dragging = false;
 $('view').addEventListener('pointerdown', () => (dragging = true));
@@ -433,21 +556,38 @@ addEventListener('pointermove', (e) => {
 function readInput() {
   const k = (...codes) => (codes.some((c) => keys.has(c)) ? 1 : 0);
   // Contract: x = +1 là trục +X khi yaw 0. Camera nhìn theo +Z nên +X nằm BÊN TRÁI màn hình -> A là x dương.
+  const b = settings.keys;
   return {
-    move: [k('KeyA') - k('KeyD'), k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown')],
+    move: [k(b.left) - k(b.right), k(b.up) - k(b.down)],
     cam_yaw_deg: camYaw,
-    jump: !!k('Space'),
-    interact: !!k('KeyE'),
-    pulse: !!k('KeyF'),
-    dash: !!k('ShiftLeft', 'ShiftRight'),
+    jump: !!k(b.jump),
+    interact: !!k(b.interact),
+    pulse: !!k(b.pulse),
+    dash: !!k(b.dash),
     pause: false, // tạm dừng do giao diện xử lý: logic không được gọi khi đang dừng
   };
 }
 
 const SOUND = { lantern_out: 'out', refuel: 'pickup', mote_picked: 'pickup', charm_picked: 'charm', lantern_lit: 'lit', pulse: 'pulse', player_hit: 'hit', dash: 'dash', shade_spawned: 'shade', drifter_steal: 'steal', drifter_drop: 'pickup' };
+/** Phụ đề / chỉ báo hình ảnh (có biểu tượng, không chỉ dựa vào màu hay âm thanh). */
+function sub(text, ms = 3000) {
+  const box = $('subs');
+  const d = document.createElement('div');
+  d.textContent = text;
+  box.append(d);
+  while (box.children.length > 3) box.firstChild.remove();
+  setTimeout(() => d.remove(), ms);
+}
 function onEvents(events) {
   for (const e of events) {
     if (SOUND[e.name]) sfx.play(SOUND[e.name]);
+    if (e.name === 'shade_spawned') {
+      sub('⚠ Bóng Mực xuất hiện!');
+      lastShade = { id: e.data.id, until: performance.now() + 3000 };
+    }
+    if (e.name === 'lantern_out') sub(`🕯 Đèn ${e.data.lantern_id} đã tắt`);
+    if (e.name === 'drifter_steal') sub(`🎐 Gió Lạc cướp ${e.data.amount} đom đóm`);
+    if (e.name === 'player_hit' && !settings.reducedMotion) shake = 0.35;
     if (e.name === 'pulse') pulseT = 0;
     if (e.name === 'player_hit') flash('rgba(255, 90, 95, .35)');
     if (e.name === 'lantern_lit') flash('rgba(255, 179, 71, .3)');
@@ -456,6 +596,7 @@ function onEvents(events) {
   }
 }
 function flash(color) {
+  if (settings.reducedMotion) return; // Giảm chuyển động: không chớp màn hình
   const f = $('flash');
   f.style.transition = 'none';
   f.style.background = color;
@@ -517,6 +658,12 @@ function sync(time, dt) {
     v.fillMat.color.setHex(low ? (settings.colorblind ? 0xffffff : 0xff5a5f) : PAL.lit);
   });
 
+  for (const l of game.lanterns) {
+    const isLow = l.lit && l.fuel < game.fuelLow;
+    if (isLow && !lowFuel.has(l.id) && mode === 'play') sub(`⚠ Đèn ${l.id} sắp cạn dầu (< 30)`);
+    if (isLow) lowFuel.add(l.id);
+    else lowFuel.delete(l.id);
+  }
   syncMap(game.motes, views.motes, makeMote, (v, m) => {
     v.position.set(m.pos[0], m.pos[1] + 0.7 + Math.sin(time * 3 + v.userData.phase) * 0.2, m.pos[2]);
     v.visible = m.kind !== 'dropped' || m.ttl > 120 || Math.floor(time * 8) % 2 === 0;
@@ -564,17 +711,32 @@ function sync(time, dt) {
     leafGeo.attributes.position.needsUpdate = true;
   }
   $('windwarn').textContent = w.warn ? '🍃 Gió sắp nổi!' : w.active ? '🍃 Gió mạnh!' : '';
-  if (w.warn && !sync.warned) sfx.play('wind');
+  if (w.warn && !sync.warned) {
+    sfx.play('wind');
+    sub('🍃 Gió mạnh sắp thổi!');
+  }
   sync.warned = w.warn;
 
   // camera góc nhìn thứ ba
-  const th = (camYaw * Math.PI) / 180;
-  const fy = Math.max(p.pos[1], -6);
-  tmpV.set(p.pos[0] - Math.sin(th) * 9, fy + 5.5, p.pos[2] - Math.cos(th) * 9);
-  if (sync.snap) camera.position.copy(tmpV); // vào Đêm mới: đặt camera ngay sau lưng Mây
-  else camera.position.lerp(tmpV, 1 - Math.exp(-dt * 8));
-  sync.snap = false;
-  camera.lookAt(p.pos[0], fy + 1.2, p.pos[2]);
+  if (benchScene) {
+    // Ticket-04: camera bay vòng tròn tâm (0,0,0), R = 30 m, Y = 15 m, bắt đầu ở 0° (30,15,0), ngược chiều kim đồng hồ, 15 s/vòng
+    const a = (2 * Math.PI * ((performance.now() - (benchScene.first ?? performance.now())) / 1000)) / 15;
+    camera.position.set(30 * Math.cos(a), 15, 30 * Math.sin(a));
+    camera.lookAt(0, 0, 0);
+  } else {
+    const th = (camYaw * Math.PI) / 180;
+    const fy = Math.max(p.pos[1], -6);
+    tmpV.set(p.pos[0] - Math.sin(th) * 9, fy + 5.5, p.pos[2] - Math.cos(th) * 9);
+    if (sync.snap) camera.position.copy(tmpV); // vào Đêm mới: đặt camera ngay sau lưng Mây
+    else camera.position.lerp(tmpV, 1 - Math.exp(-dt * 8));
+    sync.snap = false;
+    camera.lookAt(p.pos[0], fy + 1.2, p.pos[2]);
+    if (shake > 0 && !settings.reducedMotion) {
+      shake = Math.max(0, shake - dt);
+      camera.position.x += (Math.random() - 0.5) * shake;
+      camera.position.y += (Math.random() - 0.5) * shake;
+    }
+  }
   hud(time, litCount);
 }
 
@@ -587,6 +749,7 @@ function hud(time, litCount) {
   clock.classList.toggle('danger', sec <= 30);
   if (sec <= 30 && settings.colorblind) clock.textContent = `⚠ ${clock.textContent}`;
   if (mode === 'play' && sec <= 10 && sec !== lastCountdown) {
+    if (lastCountdown === null || sec === 10) sub('⏱ 10 giây cuối tới bình minh!');
     if (lastCountdown !== null) sfx.play('tick');
     lastCountdown = sec;
   }
@@ -599,6 +762,8 @@ function hud(time, litCount) {
     el.style.setProperty('--p', `${Math.round((left / total) * 100)}%`);
     el.classList.toggle('wait', left > 0 || !ok);
   };
+  $('cd-dash-key').textContent = K('dash');
+  $('cd-pulse-key').textContent = K('pulse');
   cd($('cd-dash'), p.charm > 0 ? 0 : p.dashCd, tuning.dash_cooldown_s * 60, true);
   cd($('cd-pulse'), p.pulseCd, tuning.pulse_cooldown_s * 60, p.carried >= tuning.pulse_cost);
   $('hud-charm').innerHTML = p.charm > 0 ? `<span>Bùa Gió</span> ${(p.charm / 60).toFixed(1)}s` : '';
@@ -614,26 +779,30 @@ function hud(time, litCount) {
       : '';
 
   // mũi tên tới đèn chưa sáng gần nhất khi nó ở ngoài màn hình
-  const arrow = $('arrow');
   const target = game.lanterns.filter((l) => !l.lit).sort((a, b) => Math.hypot(a.pos[0] - p.pos[0], a.pos[2] - p.pos[2]) - Math.hypot(b.pos[0] - p.pos[0], b.pos[2] - p.pos[2]))[0];
-  arrow.style.display = 'none';
-  if (target && mode === 'play') {
-    tmpV.set(target.pos[0], target.pos[1] + 3.5, target.pos[2]).project(camera);
-    const behind = tmpV.z > 1;
-    if (behind || Math.abs(tmpV.x) > 0.95 || Math.abs(tmpV.y) > 0.95) {
-      let x = behind ? -tmpV.x : tmpV.x;
-      let y = behind ? -tmpV.y : tmpV.y;
-      const m = Math.max(Math.abs(x), Math.abs(y), 1e-6);
-      x /= m;
-      y /= m;
-      const cx = innerWidth / 2 + x * (innerWidth / 2 - 40);
-      const cy = innerHeight / 2 - y * (innerHeight / 2 - 40);
-      arrow.style.display = 'block';
-      arrow.style.left = `${cx - 14}px`;
-      arrow.style.top = `${cy - 13}px`;
-      arrow.style.transform = `rotate(${Math.atan2(x, y)}rad)`;
-    }
-  }
+  edgeArrow($('arrow'), target && mode === 'play' ? [target.pos[0], target.pos[1] + 3.5, target.pos[2]] : null);
+  // mũi tên tới Bóng Mực vừa xuất hiện (3 s)
+  const sh = lastShade && performance.now() < lastShade.until ? game.shades.find((x) => x.id === lastShade.id) : null;
+  edgeArrow($('shade-arrow'), sh && mode === 'play' ? sh.pos : null);
+}
+
+function edgeArrow(el, pos) {
+  el.style.display = 'none';
+  if (!pos) return;
+  tmpV.set(pos[0], pos[1], pos[2]).project(camera);
+  const behind = tmpV.z > 1;
+  if (!behind && Math.abs(tmpV.x) <= 0.95 && Math.abs(tmpV.y) <= 0.95) return; // đang trong màn hình
+  let x = behind ? -tmpV.x : tmpV.x;
+  let y = behind ? -tmpV.y : tmpV.y;
+  const m = Math.max(Math.abs(x), Math.abs(y), 1e-6);
+  x /= m;
+  y /= m;
+  const cx = innerWidth / 2 + x * (innerWidth / 2 - 40);
+  const cy = innerHeight / 2 - y * (innerHeight / 2 - 40);
+  el.style.display = 'block';
+  el.style.left = `${cx - 14}px`;
+  el.style.top = `${cy - 13}px`;
+  el.style.transform = `rotate(${Math.atan2(x, y)}rad)`;
 }
 
 function resize() {
@@ -646,24 +815,49 @@ resize();
 
 // ---------- vòng lặp ----------
 const bench = params.has('bench') ? { secs: Number(params.get('bench')) || 10, frames: 0, t0: null } : null;
+// ?benchscene&seed=42&duration=30: cảnh benchmark chuẩn Ticket-04 (scripts/bench.mjs điều khiển)
+const benchScene = params.has('benchscene') ? { duration: Number(params.get('duration')) || 30, seed: Number(params.get('seed')) || 42, first: null, last: null, dts: [] } : null;
 let fpsFrames = 0;
 let fpsT = performance.now();
 let last = performance.now();
 function frame(now) {
+  if (benchScene) {
+    if (benchScene.first === null) {
+      benchScene.first = now;
+      benchScene.firstEpoch = performance.timeOrigin + now; // khung hình đầu tiên của cảnh bench
+    } else if (now - benchScene.first >= 3000 && !window.__benchDone) {
+      // 3 s đầu khởi động không đo; sau đó đo đúng `duration` giây
+      if (benchScene.last !== null) benchScene.dts.push(now - benchScene.last);
+      if (now - benchScene.first >= 3000 + benchScene.duration * 1000) {
+        const gl = renderer.getContext();
+        const ext = gl.getExtension('WEBGL_debug_renderer_info');
+        window.__benchDone = {
+          dts: benchScene.dts,
+          firstEpoch: benchScene.firstEpoch,
+          gl: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
+          three: THREE.REVISION,
+          size: `${innerWidth}x${innerHeight}`,
+          shades: game.shades.length,
+          motes: game.motes.length,
+        };
+      }
+    }
+    benchScene.last = now;
+  }
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  camYaw += ((keys.has('ArrowLeft') ? 1 : 0) - (keys.has('ArrowRight') ? 1 : 0)) * 120 * dt * settings.sensitivity;
+  camYaw += ((keys.has(settings.keys.camLeft) ? 1 : 0) - (keys.has(settings.keys.camRight) ? 1 : 0)) * 120 * dt * settings.sensitivity;
   if (mode === 'play') {
     acc += dt;
     let n = 0;
     while (acc >= 1 / TICK_RATE && n < 8) {
-      onEvents(game.step(botMode ? botInput(game, botMem) : readInput()));
+      onEvents(game.step(benchScene ? {} : botMode ? botInput(game, botMem) : readInput()));
       acc -= 1 / TICK_RATE;
       n++;
       if (game.state === 'won' || game.state === 'lost') break;
     }
     if (game.state === 'won' || game.state === 'lost') toResult();
-  } else if (mode === 'menu' || mode === 'intro') {
+  } else if ((mode === 'menu' || mode === 'intro') && !settings.reducedMotion) {
     camYaw += dt * 8;
   }
   sync(now / 1000, dt);
@@ -694,7 +888,27 @@ applyPalette();
 // khởi động: menu, hoặc vào thẳng Đêm (?night=N&seed=S) để kiểm thử/đo
 newNight(1, 1);
 if (params.has('fps')) $('fps').hidden = false;
-if (params.has('night') || params.has('seed') || bench) {
+if (benchScene) {
+  // 200 Bóng Mực wander rải đều trên đảo + 100 đom đóm (seed 42); L1–L3 sáng, fuel 100; Mây đứng yên ở (0,0,0)
+  const rng = mulberry32(benchScene.seed);
+  const disk = (R) => {
+    const r = R * Math.sqrt(rng());
+    const a = rng() * 2 * Math.PI;
+    return [Math.round(r * Math.cos(a) * 1000) / 1000, Math.round(r * Math.sin(a) * 1000) / 1000];
+  };
+  const shades = Array.from({ length: 200 }, () => {
+    const [x, z] = disk(37);
+    return { pos: [x, 1, z], state: 'wander' };
+  });
+  const motes = Array.from({ length: 100 }, () => {
+    const [x, z] = disk(38);
+    return [x, 0, z];
+  });
+  const scenario = { random_motes: false, random_shades: false, random_drifters: false, wind_enabled: false, player: { pos: [0, 0, 0] }, lanterns: ['L1', 'L2', 'L3'].map((id) => ({ id, lit: true, fuel: 100 })), shades, motes };
+  newNight(1, benchScene.seed, scenario, { benchMode: true });
+  mode = 'play';
+  show('');
+} else if (params.has('night') || params.has('seed') || bench) {
   const n = Math.min(3, Math.max(1, Number(params.get('night')) || 1));
   // ?scenario={...}: dựng tình huống giống file scenario của headless (dùng để kiểm thử/chụp ảnh)
   newNight(n, Number(params.get('seed')) || 1, params.has('scenario') ? JSON.parse(params.get('scenario')) : {});
@@ -702,6 +916,11 @@ if (params.has('night') || params.has('seed') || bench) {
   applyPalette();
   mode = 'play';
   show('');
-} else toMenu();
+} else {
+  toMenu();
+  // ?screen=board|settings: mở thẳng màn hình (kiểm thử/chụp ảnh)
+  if (params.get('screen') === 'board') toBoard();
+  if (params.get('screen') === 'settings') toSettings('menu');
+}
 requestAnimationFrame(frame);
 window.__game = () => game;

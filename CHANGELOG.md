@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## [v1.0.0 / phase-4] Contract v1.3: Ticket-04 "Bình minh"
+
+### Thêm
+- **Benchmark** `node scripts/bench.mjs --seed 42 --duration 30 --out bench.json`:
+  - Cảnh chuẩn: 200 Bóng Mực, 100 đom đóm, L1–L3 sáng, camera bay vòng.
+  - Chạy trong cửa sổ Chrome 1280×720, đã tắt vsync.
+  - Ghi avg_fps, p1_low_fps, frame_ms_p95, load_ms, peak_mem_mb.
+- **Soak** `node --expose-gc --jitless scripts/soak.mjs --seed 7 --nights 10 --out soak.json`: 10 Đêm trong một tiến trình, input ngẫu nhiên theo seed.
+- **Bảng xếp hạng cục bộ** (top 10, lưu ở `~/.dao-den-long/leaderboard.json`, tên có thể có dấu tiếng Việt):
+  - Nhập tên sau màn Bình Minh hoặc sau khi thua.
+  - Có màn hình riêng từ menu.
+  - Xuất ra file bằng `node server.mjs --export-leaderboard out.json`.
+- **Dễ tiếp cận:**
+  - Đổi phím mọi hành động (báo phím trùng, có khôi phục mặc định, được lưu).
+  - Phụ đề và chỉ báo hình ảnh (Bóng Mực xuất hiện kèm mũi tên ở mép màn hình, gió, 10 giây cuối, đèn dưới 30 dầu).
+  - Giảm chuyển động.
+  - Chữ UI tối thiểu 18 px, có tùy chọn Chữ lớn ×1.25.
+- **Đóng gói:** `npm run release` → `dist/dao-den-long-v1.0.0.zip` (đã kèm three.js, chạy bằng `node server.mjs`); GitHub Release v1.0.0.
+- Tài liệu: retro, kịch bản video, README đủ mục (yêu cầu hệ thống, bench, soak).
+
+### ⚠ Thay đổi phá vỡ tương thích
+- `contract_version` đổi thành `"1.3"`; thêm `bench_cmd` và `soak_cmd`.
+- `run_cmd` đổi từ `npm start` thành `node server.mjs`, để `--export-leaderboard` truyền được tham số. `npm start` vẫn chạy như cũ.
+- Cỡ chữ và bố cục HUD đổi để chữ đạt tối thiểu 18 px.
+
 ## [phase-3] Contract v1.2: Ticket-03 "Đèn cạn dầu"
 
 ### ⚠ Thay đổi phá vỡ tương thích (breaking changes)
