@@ -72,6 +72,7 @@ export class Sfx {
       case 'dash': this.noise(0.18, { gain: 0.25, freq: 1800 }); break;
       case 'steal': this.tone(900, 0.25, { type: 'sawtooth', gain: 0.08, to: 300 }); break;
       case 'shade': this.tone(70, 0.6, { type: 'sawtooth', gain: 0.1 }); this.tone(74, 0.6, { type: 'sawtooth', gain: 0.08 }); break;
+      case 'out': this.tone(500, 0.6, { type: 'sine', gain: 0.2, to: 120 }); break;
       case 'tick': this.tone(1000, 0.05, { type: 'square', gain: 0.08 }); break;
       case 'wind': this.noise(1.6, { gain: 0.18, freq: 500 }); break;
       case 'win': [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone(f, 0.5, { type: 'triangle', gain: 0.18, delay: i * 0.12 })); break;

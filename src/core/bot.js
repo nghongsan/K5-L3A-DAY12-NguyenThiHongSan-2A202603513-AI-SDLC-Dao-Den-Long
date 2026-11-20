@@ -50,9 +50,11 @@ export function botInput(g, mem) {
   const danger = (pos) => hunters.reduce((a, s) => a + 40 / (1 + hdist(s.pos, pos)), 0);
   const cost = (x) => hdist(x.pos, p.pos) + 8 * Math.abs(x.pos[1] - p.pos[1]) + danger(x.pos);
   const nearest = (list) => list.reduce((b, x) => (!b || cost(x) < cost(b) ? x : b), null);
-  const lantern = nearest(g.lanterns.filter((l) => !l.lit));
-  const need = lantern ? t.lantern_cost - lantern.deposited : Infinity;
-  const goDeposit = lantern && p.carried > 0 && (p.carried >= t.carry_capacity || p.carried >= need || (g.motes.length === 0 && p.carried > 0));
+  // Ticket-03: đèn cần lo = đèn tắt, hoặc đèn sáng còn dưới nửa dầu (châm dầu)
+  const cap = g.capacity();
+  const lantern = nearest(g.lanterns.filter((l) => !l.lit || l.fuel < g.fuelMax / 2));
+  const need = !lantern ? Infinity : lantern.lit ? Math.ceil((g.fuelMax - lantern.fuel) / g.fuelPerMote) : g.costOf(lantern) - lantern.deposited;
+  const goDeposit = lantern && p.carried > 0 && (p.carried >= cap || p.carried >= need || (lantern.lit && lantern.fuel < g.fuelLow) || (g.motes.length === 0 && p.carried > 0));
   let target = goDeposit ? lantern : nearest(g.motes) ?? lantern;
 
   // kẹt quá lâu thì đổi mục tiêu tạm thời
