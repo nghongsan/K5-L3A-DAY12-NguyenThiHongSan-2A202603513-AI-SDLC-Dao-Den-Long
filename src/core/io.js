@@ -28,7 +28,7 @@ export function parseScenario(sc, lanternCount = 5, defaultCharms = []) {
     need(isObj(p), 'player phải là object');
     out.player = {};
     if (p.pos !== undefined) out.player.pos = vec3(p.pos, 'player.pos');
-    for (const k of ['carried', 'flames', 'invuln_ticks', 'dash_cd_ticks', 'pulse_cd_ticks', 'charm_ticks']) {
+    for (const k of ['carried', 'flames', 'invuln_ticks', 'dash_cd_ticks', 'pulse_cd_ticks', 'charm_ticks', 'successful_lights']) {
       if (p[k] === undefined) continue;
       need(isCount(p[k]), `player.${k} phải là số nguyên ≥ 0`);
       out.player[k] = p[k];
@@ -72,6 +72,10 @@ export function parseScenario(sc, lanternCount = 5, defaultCharms = []) {
       if (s.state_ticks_left !== undefined) {
         need(isCount(s.state_ticks_left), `shades[${i}].state_ticks_left phải là số nguyên ≥ 0`);
         o.state_ticks_left = s.state_ticks_left;
+      }
+      if (s.target_lantern_id !== undefined) {
+        need(typeof s.target_lantern_id === 'string' && /^L\d+$/.test(s.target_lantern_id), `shades[${i}].target_lantern_id phải là id đèn (L1…)`);
+        o.target_lantern_id = s.target_lantern_id;
       }
       return o;
     });
@@ -133,6 +137,14 @@ export function parseScenario(sc, lanternCount = 5, defaultCharms = []) {
       if (l.deposited !== undefined) {
         need(isCount(l.deposited), `lanterns[${i}].deposited phải là số nguyên ≥ 0`);
         o.deposited = l.deposited;
+      }
+      if (l.fuel !== undefined) {
+        need(isNum(l.fuel) && l.fuel >= 0 && l.fuel <= 100, `lanterns[${i}].fuel phải là số trong [0, 100]`);
+        o.fuel = l.fuel;
+      }
+      if (l.ever_lit !== undefined) {
+        need(typeof l.ever_lit === 'boolean', `lanterns[${i}].ever_lit phải là boolean`);
+        o.ever_lit = l.ever_lit;
       }
       return o;
     });

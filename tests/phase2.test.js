@@ -187,19 +187,20 @@ test('F5 Tạm dừng: tick vẫn tăng nhưng sim_tick, thời gian, hồi chi�
   const l = run({ player: { carried: 3 } }, frames, 40);
   assert.deepEqual(events(l).filter((e) => e.tick > 0).map((e) => [e.tick, e.name]), [[1, 'paused'], [31, 'resumed']]);
   const p = at(l, 30);
-  assert.deepEqual([p.state, p.sim_tick, p.time_left_s, p.player.pos], ['paused', 0, 300, [0, 0, 0]]);
+  // [P3] Đêm 1 còn 240 s
+  assert.deepEqual([p.state, p.sim_tick, p.time_left_s, p.player.pos], ['paused', 0, 240, [0, 0, 0]]);
   const r = at(l, 40);
-  assert.deepEqual([r.state, r.sim_tick, r.time_left_s], ['playing', 10, 299.833]);
+  assert.deepEqual([r.state, r.sim_tick, r.time_left_s], ['playing', 10, 239.833]);
   assert.deepEqual(r.player.pos, [0, 0, 1]);
   assert.deepEqual(last(l), at(l, 40));
   assert.equal(l.at(-1).ticks, 40);
 });
 
 // ---------- Hiệu năng ----------
-test('C5 Một Đêm đầy đủ (21600 tick, Đêm 3) chạy headless < 30 s', () => {
+test('C5 Một Đêm đầy đủ (Đêm 3 = 300 s = 18000 tick) chạy headless < 30 s [P3: Đêm 3 rút còn 300 s]', () => {
   const t0 = performance.now();
   const l = runHeadless({ tuning: T, seed: 9, night: 3, scenario: { player: { flames: 1000 } }, ticks: 21600, snapshotEvery: 10 });
   const ms = performance.now() - t0;
-  assert.equal(l.at(-1).ticks, 21600);
+  assert.equal(l.at(-1).ticks, 18000);
   assert.ok(ms < 30000, `${ms} ms`);
 });

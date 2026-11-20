@@ -6,17 +6,18 @@ import { readFileSync } from 'node:fs';
 import { runHeadless, toJsonl } from '../src/core/runner.js';
 import { T, contract, run, snaps, events, last, at, ticksOf, hd } from './helpers.js';
 
-test('C1 contract v1.1: đủ khóa, tuning khớp số chuẩn Ticket-02', () => {
-  assert.equal(contract.contract_version, '1.1');
+test('C1 contract v1.2: đủ khóa, tuning khớp số chuẩn Ticket-02 + Ticket-03 [P3: thời lượng Đêm, khóa dầu, điểm mới]', () => {
+  assert.equal(contract.contract_version, '1.2');
   for (const k of ['team', 'build_cmd', 'run_cmd', 'headless_cmd']) assert.equal(typeof contract[k], 'string', k);
   const std = {
     player_speed: 6, carry_capacity: 10, lantern_cost: 10, lantern_count_night1: 5, pickup_radius: 1, interact_radius: 2,
-    pulse_cost: 3, pulse_radius: 5, night1_duration_s: 300, night2_duration_s: 330, night3_duration_s: 360, flames: 3,
+    pulse_cost: 3, pulse_radius: 5, night1_duration_s: 240, night2_duration_s: 270, night3_duration_s: 300, flames: 3,
     invuln_s: 1.5, hit_drop_ratio: 0.5, pulse_stun_s: 2, pulse_push_m: 4, pulse_cooldown_s: 3, safe_radius: 6,
     shade_speed: 4, shade_hit_radius: 1, fall_enabled: true, dash_speed: 14, dash_duration_s: 0.2, dash_cooldown_s: 1.5,
+    fuel_max: 100, fuel_decay_per_s: 1, fuel_per_mote: 10, relight_cost: 5, win_ratio: 0.6, drain_per_s: 5, low_fuel_threshold: 30, capacity_max: 20,
   };
   for (const [k, v] of Object.entries(std)) assert.equal(T[k], v, k);
-  assert.deepEqual(T.score, { per_mote: 10, per_lantern: 100, per_stun: 5, per_second_left: 2, per_flame_left: 50 });
+  assert.deepEqual(T.score, { per_mote: 5, per_lantern: 100, per_relight: 40, per_stun: 5, per_stun_drain: 15, per_second_left: 0, per_flame_left: 50, per_lit_at_dawn: 50 });
 });
 
 test('R2 di chuyển: move [0,1], yaw 0, 60 tick => 6 m theo +Z (tăng tốc tức thì ≤ 0.1 s)', () => {
@@ -54,11 +55,13 @@ test('R3 không mang quá carry_capacity (10)', () => {
   assert.equal(s.motes_active, 2);
 });
 
-test('R4 nạp đủ 10 thì thắp, +10/đom đóm nạp +100/đèn', () => {
+test('R4 nạp đủ 10 thì thắp, +5/đom đóm nạp +100/đèn [P3: điểm mới, lantern_lit có relight]', () => {
   const lines = run({ player: { carried: 10 }, lanterns: [{ id: 'L1', pos: [0, 0, 2] }] }, [{ tick: 0, interact: true }], 2);
   assert.deepEqual(events(lines).filter((e) => e.tick > 0).map((e) => [e.tick, e.name]), [[1, 'deposit'], [1, 'lantern_lit']]);
   assert.deepEqual(events(lines, 'deposit')[0].data, { lantern_id: 'L1', amount: 10, deposited: 10 });
-  assert.equal(last(lines).score, 10 * 10 + 100);
+  assert.deepEqual(events(lines, 'lantern_lit')[0].data, { lantern_id: 'L1', relight: false });
+  assert.equal(last(lines).score, 10 * 5 + 100);
+  assert.equal(last(lines).lanterns[0].fuel, 100);
 });
 
 test('R4 nạp nhiều lần, đèn nhớ tiến độ; giữ nút không nạp lặp; ngoài 2.0 m không nạp', () => {
@@ -77,21 +80,8 @@ test('R4 nhiều đèn trong tầm: chọn đèn gần nhất, bằng nhau thì 
   assert.equal(events(run(tie, [{ tick: 0, interact: true }], 1), 'deposit')[0].data.lantern_id, 'L2');
 });
 
-test('R8 thắng khi mọi đèn sáng; đèn đặt sẵn không được điểm; thưởng giây còn lại + lửa', () => {
-  const lanterns = ['L1', 'L2', 'L3', 'L4'].map((id) => ({ id, lit: true }));
-  lanterns.push({ id: 'L5', pos: [0, 0, 1] });
-  const lines = run({ player: { carried: 10 }, lanterns, time_left_s: 100 }, [{ tick: 0, interact: true }], 10);
-  assert.deepEqual(events(lines, 'game_over').map((e) => [e.tick, e.data]), [[1, { result: 'won', reason: 'all_lit' }]]);
-  const score = 100 + 100 + 2 * Math.floor((6000 - 1) / 60) + 50 * 3;
-  assert.deepEqual(lines.at(-1), { type: 'end', ticks: 1, state: 'won', score });
-});
-
-test('R8 thắp đèn cuối đúng tick hết giờ vẫn thắng (all_lit trước dawn)', () => {
-  const lanterns = ['L1', 'L2', 'L3', 'L4'].map((id) => ({ id, lit: true }));
-  lanterns.push({ id: 'L5', pos: [0, 0, 1] });
-  const lines = run({ player: { carried: 10 }, lanterns, time_left_s: 1 / 60 }, [{ tick: 0, interact: true }], 5);
-  assert.deepEqual(events(lines, 'game_over')[0].data, { result: 'won', reason: 'all_lit' });
-});
+// [P3] Hai test "thắng khi mọi đèn sáng" và "thắp đèn cuối đúng tick hết giờ vẫn thắng" bị XÓA:
+// Ticket-03 bỏ thắng sớm (all_lit). Luật thắng mới được kiểm ở tests/phase3.test.js (W1–W4).
 
 test('R6 Tỏa Sáng: tốn 3, tâm = chân + 0.8 m, chọn mục tiêu theo khoảng cách 3D <= 5, +5/Bóng Mực', () => {
   const sc = { player: { carried: 4 }, shades: [{ id: 'A', pos: [4, 1, 0] }, { id: 'B', pos: [0, 1, 4.9] }, { id: 'C', pos: [-5, 1, 0] }] };
@@ -197,7 +187,7 @@ test('R8 thua khi hết lửa (no_flames) và khi hết giờ (dawn)', () => {
   assert.deepEqual(events(lines, 'game_over').map((e) => [e.tick, e.data]), [[60, { result: 'lost', reason: 'dawn' }]]);
 });
 
-test('C2 snapshot v1.1: tick 0 rồi night_start; đều mỗi --snapshot-every; dòng cuối end; đủ trường mới', () => {
+test('C2 snapshot v1.2: tick 0 rồi night_start; đều mỗi --snapshot-every; dòng cuối end; đủ trường mới [P3: fuel, ever_lit, relit_count, capacity]', () => {
   const lines = runHeadless({ tuning: T, seed: 7, night: 1, ticks: 95, snapshotEvery: 10 });
   assert.equal(lines[0].type, 'snapshot');
   assert.deepEqual(lines[1], { type: 'event', tick: 0, name: 'night_start', data: { night: 1 } });
@@ -205,7 +195,9 @@ test('C2 snapshot v1.1: tick 0 rồi night_start; đều mỗi --snapshot-every;
   assert.deepEqual(lines.at(-1), { type: 'end', ticks: 95, state: 'playing', score: 0 });
   const s0 = lines[0];
   assert.deepEqual(Object.keys(s0), ['type', 'tick', 'sim_tick', 'state', 'night', 'time_left_s', 'score', 'wind', 'player', 'lanterns', 'shades', 'motes_active', 'motes', 'drifters', 'charms']);
-  assert.deepEqual(s0.player, { pos: [0, 0, 0], vel: [0, 0, 0], grounded: true, flames: 3, carried: 0, invuln: false, dash_cd_s: 0, pulse_cd_s: 0, charm_s: 0 });
+  assert.deepEqual(s0.player, { pos: [0, 0, 0], vel: [0, 0, 0], grounded: true, flames: 3, carried: 0, capacity: 10, invuln: false, dash_cd_s: 0, pulse_cd_s: 0, charm_s: 0 });
+  assert.deepEqual(s0.lanterns[0], { id: 'L1', pos: [0, 0, 25], lit: false, deposited: 0, fuel: 0, ever_lit: false, relit_count: 0 });
+  assert.equal(s0.time_left_s, 240);
   assert.deepEqual(s0.wind, { active: false, dir_deg: null });
   assert.equal(s0.motes_active, 20);
   assert.equal(new Set(s0.motes.map((m) => m.pos.join())).size, 20);
