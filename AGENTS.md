@@ -10,6 +10,7 @@ Game 3D (Three.js) + lõi tất định chạy headless theo **Test Contract v1.
 - FPS: `npm start` rồi `node scripts/bench-fps.mjs --night 3 [--uncapped] [--software]`
 - Token: `npm run tokens -- --since <ISO>` (ghi vào docs/notes/ai-log.md)
 - Bench (Ticket-04): `node scripts/bench.mjs --seed 42 --duration 30 --out bench.json [--headless]` · Soak: `node --expose-gc --jitless scripts/soak.mjs --seed 7 --nights 10 --out soak.json`
+- Giao diện: `node scripts/ui-smoke.mjs` (Chrome headless qua DevTools; chạy sau khi sửa web/) · Server: `node server.mjs [--no-open]`
 - Bảng xếp hạng: `node server.mjs --export-leaderboard out.json` (file ~/.dao-den-long/leaderboard.json, biến DDL_LEADERBOARD để test) · Release: `npm run release`
 
 ## Bố cục

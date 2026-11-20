@@ -19,7 +19,7 @@ Game 3D góc nhìn thứ ba. Bạn vào vai **Mây**, người giữ đèn nhỏ
 ```bash
 git clone https://github.com/nghongsan/K5-L3A-DAY12-NguyenThiHongSan-2A202603513-AI-SDLC-Dao-Den-Long.git && cd K5-L3A-DAY12-NguyenThiHongSan-2A202603513-AI-SDLC-Dao-Den-Long
 npm install
-npm start          # = node server.mjs, rồi mở http://localhost:5173
+npm start          # = node server.mjs: tự mở trình duyệt tại http://localhost:5173 (thêm --no-open để tắt)
 ```
 
 Bản Release không cần `npm install`: giải nén zip, chạy `node server.mjs`, rồi mở http://localhost:5173.
@@ -73,11 +73,12 @@ node src/headless/cli.js --seed 1 --night 1 --ticks 600 --out out/run.jsonl [--s
 node scripts/bench.mjs --seed 42 --duration 30 --out bench.json # mở cửa sổ Chrome 1280×720 (thêm --headless nếu không có màn hình)
 node --expose-gc --jitless scripts/soak.mjs --seed 7 --nights 10 --out soak.json
 node server.mjs --export-leaderboard out.json                   # xuất bảng xếp hạng {"entries": [...]}
-npm run proof -- --phase 4 --no-fps                              # chạy mọi kiểm chứng, ghi vào docs/proof/phase-4/
+node scripts/ui-smoke.mjs                                       # kiểm thử giao diện thật qua Chrome: menu, tạm dừng, đổi phím, cỡ chữ, lưu điểm
+npm run proof -- --phase 4 --no-fps                              # chạy mọi kiểm chứng (kể cả ui-smoke), ghi vào docs/proof/phase-4/
 ```
 
 - **Headless** theo Test Contract **v1.3**. Mã thoát: 0 xong; 2 file inputs/scenario sai định dạng; 1 lỗi khác.
-- **Bench:** chạy cảnh chuẩn của Ticket-04 trong Chrome.
+- **Bench:** chạy cảnh chuẩn của Ticket-04 trong Chrome. Trên Linux không có màn hình (không có `DISPLAY`/`WAYLAND_DISPLAY`), bench tự chuyển sang headless.
   - **Vsync và trần khung hình đã tắt** bằng `--disable-gpu-vsync --disable-frame-rate-limit`.
   - `peak_mem_mb` là tổng RSS của cả cây tiến trình Chrome.
   - Kết quả của tôi nằm ở [bench.json](bench.json): 294.8 FPS trung bình, p1-low 93.5, tải 3.3 s (Apple M1).

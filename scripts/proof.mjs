@@ -1,4 +1,4 @@
-// Chạy toàn bộ kiểm chứng và ghi bằng chứng: npm run proof [-- --phase 2] [--no-fps]
+// Chạy toàn bộ kiểm chứng và ghi bằng chứng: npm run proof [-- --phase 4] [--no-fps] [--no-ui]
 // Kết quả: docs/proof/phase-N/{proof-summary.md, test-report.txt, runs/*}
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -82,7 +82,7 @@ check(`Phát lại input bot (Đêm ${gw.night}, seed ${gw.seed}) qua CLI ra đ�
 let fpsRows = '';
 if (!process.argv.includes('--no-fps')) {
   const port = 5600 + Math.floor(Math.random() * 300);
-  const srv = spawn(process.execPath, ['server.mjs'], { env: { ...process.env, PORT: String(port) }, stdio: 'ignore' });
+  const srv = spawn(process.execPath, ['server.mjs', '--no-open'], { env: { ...process.env, PORT: String(port) }, stdio: 'ignore' });
   await new Promise((r) => setTimeout(r, 800));
   const bench = (extra) => {
     const r = spawnSync(process.execPath, ['scripts/bench-fps.mjs', '--url', `http://127.0.0.1:${port}`, '--secs', '8', ...extra], { encoding: 'utf8', timeout: 90000 });
@@ -96,13 +96,22 @@ if (!process.argv.includes('--no-fps')) {
   for (const night of ['1', '2', '3']) res.push({ night, capped: bench(['--night', night]), uncapped: bench(['--night', night, '--uncapped']) });
   srv.kill();
   const ok = res.every((r) => r.capped && r.capped.avgFps >= 29.5);
-  check('FPS bản thường 1280×720 >= 30 (Chrome, GPU)', ok, 'bảng FPS bên dưới; headless Chrome khóa trần ~30 FPS nên đo thêm bản bỏ trần');
-  fpsRows = `\n## FPS bản thường (scripts/bench-fps.mjs, bot chơi 8 s, bỏ 1 s đầu)\n\n| Đêm | Trung bình (trần headless ~30) | Trung bình (bỏ trần) | Khung hình | Renderer |\n|---|---:|---:|---|---|\n${res
+  check('FPS bản thường 1280×720 >= 30 (Chrome, GPU)', ok, 'bảng FPS bên dưới; headless Chrome có trần khung hình (30 hoặc 60) nên đo thêm bản bỏ trần');
+  fpsRows = `\n## FPS bản thường (scripts/bench-fps.mjs, bot chơi 8 s, bỏ 1 s đầu)\n\n| Đêm | Trung bình (có trần khung hình của headless) | Trung bình (bỏ trần) | Khung hình | Renderer |\n|---|---:|---:|---|---|\n${res
     .map((r) => `| ${r.night} | ${r.capped?.avgFps ?? '—'} | ${r.uncapped?.avgFps ?? '—'} | ${r.capped?.size ?? '—'} | ${r.capped?.renderer ?? '—'} |`)
     .join('\n')}\n`;
 }
 
-const dirty = git('status', '--porcelain', '--', 'src', 'web', 'tests', 'game.contract.json', 'scenarios', 'package.json');
+// 7) giao diện thật qua Chrome DevTools (menu, tạm dừng, đổi phím, cỡ chữ, lưu điểm, bảng xếp hạng)
+if (!process.argv.includes('--no-ui')) {
+  const ui = spawnSync(process.execPath, ['scripts/ui-smoke.mjs'], { encoding: 'utf8', timeout: 180000 });
+  writeFileSync(`${dir}/ui-smoke.txt`, ui.stdout + ui.stderr);
+  const pass = (ui.stdout.match(/^PASS/gm) ?? []).length;
+  const fail = (ui.stdout.match(/^(FAIL|CRASH)/gm) ?? []).length;
+  check('Giao diện thật qua Chrome (scripts/ui-smoke.mjs)', ui.status === 0 && fail === 0 && pass > 0, `${pass} bước đạt, ${fail} lỗi → [ui-smoke.txt](ui-smoke.txt)`);
+}
+
+const dirty = git('status', '--porcelain', '--', 'src', 'web', 'tests', 'scripts', 'server.mjs', 'game.contract.json', 'scenarios', 'package.json');
 const md = `# Bằng chứng tự động — Phase ${phase}
 
 Sinh bởi \`npm run proof -- --phase ${phase}\` (scripts/proof.mjs). Không sửa tay file này.

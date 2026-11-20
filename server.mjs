@@ -1,8 +1,9 @@
 // Server cho bản có giao diện (không phụ thuộc thư viện) + bảng xếp hạng lưu trên đĩa.
-//   node server.mjs                                 chơi: http://localhost:5173
+//   node server.mjs [--no-open]                     chơi: http://localhost:5173 (tự mở trình duyệt)
 //   node server.mjs --export-leaderboard out.json   xuất {"entries": [...]} đúng thứ tự rồi thoát
 // Bảng xếp hạng: ~/.dao-den-long/leaderboard.json (đổi bằng biến DDL_LEADERBOARD).
 import http from 'node:http';
+import { spawn } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
@@ -112,6 +113,18 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     console.log(`Đã xuất ${readBoard().length} mục bảng xếp hạng → ${out}`);
   } else {
     const port = Number(process.env.PORT) || 5173;
-    createServer().listen(port, '127.0.0.1', () => console.log(`Đảo Đèn Lồng đang chạy: http://localhost:${port}  (Ctrl+C để dừng)`));
+    createServer().listen(port, '127.0.0.1', () => {
+      const url = `http://localhost:${port}`;
+      console.log(`Đảo Đèn Lồng đang chạy: ${url}  (Ctrl+C để dừng)`);
+      // run_cmd = "lệnh mở game có giao diện": tự mở trình duyệt (tắt bằng --no-open hoặc DDL_NO_OPEN=1)
+      if (!process.argv.includes('--no-open') && !process.env.DDL_NO_OPEN && !process.env.CI) {
+        const [cmd, args] = process.platform === 'darwin' ? ['open', [url]] : process.platform === 'win32' ? ['cmd', ['/c', 'start', '', url]] : ['xdg-open', [url]];
+        try {
+          spawn(cmd, args, { stdio: 'ignore', detached: true }).on('error', () => console.log(`Mở trình duyệt tại ${url}`)).unref();
+        } catch {
+          console.log(`Mở trình duyệt tại ${url}`);
+        }
+      }
+    });
   }
 }

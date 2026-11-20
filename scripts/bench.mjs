@@ -3,35 +3,26 @@
 // 3 s khởi động rồi đo đúng --duration giây, ghi bench.json và thoát với mã 0.
 // Cần Chrome/Chromium/Edge; đặt biến CHROME=<đường dẫn> nếu không tự tìm thấy.
 import { spawn, execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import { join } from 'node:path';
 import { createServer } from '../server.mjs';
+import { findChrome, noDisplay, connectCdp } from './chrome.mjs';
 
 const T0 = performance.timeOrigin; // thời điểm tiến trình bắt đầu (epoch ms)
 const arg = (k, d) => (process.argv.includes(k) ? process.argv[process.argv.indexOf(k) + 1] : d);
 const seed = Number(arg('--seed', '42'));
 const duration = Number(arg('--duration', '30'));
 const out = arg('--out', 'bench.json');
-const headless = process.argv.includes('--headless');
+// Linux không có màn hình (DISPLAY/WAYLAND_DISPLAY) thì tự chạy headless thay vì thất bại
+const headless = process.argv.includes('--headless') || noDisplay();
 const die = (msg) => {
   process.stderr.write(`bench: ${msg}\n`);
   process.exit(1);
 };
 if (!Number.isInteger(seed) || !(duration > 0)) die('cách dùng: node scripts/bench.mjs --seed 42 --duration 30 --out bench.json [--headless]');
 
-const candidates = [
-  process.env.CHROME,
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  '/Applications/Chromium.app/Contents/MacOS/Chromium',
-  '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
-  '/usr/bin/google-chrome',
-  '/usr/bin/google-chrome-stable',
-  '/usr/bin/chromium',
-  '/usr/bin/chromium-browser',
-  '/usr/bin/microsoft-edge',
-].filter(Boolean);
-const chrome = candidates.find((p) => existsSync(p));
+const chrome = findChrome();
 if (!chrome) die('không tìm thấy Chrome/Chromium/Edge; đặt CHROME=<đường dẫn>');
 const contract = JSON.parse(readFileSync(new URL('../game.contract.json', import.meta.url), 'utf8'));
 
@@ -86,35 +77,7 @@ function treeRssMb(rootPid) {
 
 let exitCode = 0;
 try {
-  let ws;
-  let browserVersion = 'Chrome';
-  for (let i = 0; i < 100 && !ws; i++) {
-    await sleep(150);
-    try {
-      browserVersion = (await (await fetch(`http://127.0.0.1:${cdpPort}/json/version`)).json()).Browser ?? browserVersion;
-      const page = (await (await fetch(`http://127.0.0.1:${cdpPort}/json`)).json()).find((p) => p.type === 'page');
-      if (page) ws = new WebSocket(page.webSocketDebuggerUrl);
-    } catch { /* chờ Chrome mở cổng DevTools */ }
-  }
-  if (!ws) throw new Error('không kết nối được Chrome DevTools');
-  await new Promise((r, j) => {
-    ws.addEventListener('open', r, { once: true });
-    ws.addEventListener('error', j, { once: true });
-  });
-  let id = 0;
-  const call = (method, params = {}) =>
-    new Promise((resolve) => {
-      const my = ++id;
-      const on = (ev) => {
-        const m = JSON.parse(ev.data);
-        if (m.id === my) {
-          ws.removeEventListener('message', on);
-          resolve(m.result);
-        }
-      };
-      ws.addEventListener('message', on);
-      ws.send(JSON.stringify({ id: my, method, params }));
-    });
+  const { ws, call, version: browserVersion } = await connectCdp(cdpPort);
   await call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false });
   await call('Page.navigate', { url: `${base}/?benchscene&seed=${seed}&duration=${duration}` });
 
@@ -153,7 +116,7 @@ try {
     seed,
     duration_s: duration,
     viewport: res.size,
-    window: headless ? 'headless 1280x720' : 'cửa sổ Chrome --app 1280x720',
+    window: headless ? `headless 1280x720${noDisplay() ? ' (tự chọn: không có màn hình)' : ''}` : 'cửa sổ Chrome --app 1280x720',
     scene: { shades: res.shades, motes: res.motes, lit_lanterns: 3 },
     peak_mem_note: 'Tổng RSS của cây tiến trình Chrome (trình duyệt + renderer + GPU) lấy mẫu mỗi 250 ms',
     pass: undefined,

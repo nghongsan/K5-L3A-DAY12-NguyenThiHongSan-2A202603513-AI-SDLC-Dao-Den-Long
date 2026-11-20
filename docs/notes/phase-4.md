@@ -39,13 +39,23 @@ Clone sạch, chạy `npm install`, `npm test`, rồi `node server.mjs` và curl
 - **Khi chạy `--jitless`:** RSS 39.3 → 40.3 MB (1.03 lần). Tốc độ vẫn thừa: 10 Đêm chạy khoảng 1 s.
 - `soak.json` ghi thêm `heap_start_mb`, `heap_end_mb` và `flags` để người chấm kiểm tra lại.
 
-## 5. Đánh giá Phase 4
+## 5. Rà soát cuối và các sửa đổi
+
+| Lỗ hổng phát hiện | Sửa |
+|---|---|
+| Bằng chứng Phase 4 được tạo khi còn thay đổi chưa commit, nên không khớp tag | Commit mã trước rồi mới chạy lại `npm run proof -- --phase 4 --no-fps`; gắn lại tag `phase-4` và `v1.0.0` (trước hạn, theo SUBMISSION §5) |
+| Bench thất bại trên Linux không có màn hình | Tự chuyển sang headless khi không có `DISPLAY`/`WAYLAND_DISPLAY` |
+| `run_cmd` không tự mở giao diện | `node server.mjs` tự gọi `open`/`xdg-open`/`start` (`--no-open` hoặc `DDL_NO_OPEN=1` để tắt) |
+| Đổi phím, tạm dừng, cỡ chữ, lưu điểm chỉ được kiểm tra tay | `scripts/ui-smoke.mjs` lái Chrome thật qua DevTools (18 bước, có kiểm tra lỗi JS); đưa vào proof |
+
+## 6. Đánh giá Phase 4
 
 - **Đạt, có số đo:**
   - Bench: 294.8 / 93.5 FPS, tải 3.25 s, peak 784 MB, Apple M1.
   - Soak: 0 crash, tỉ lệ bộ nhớ 1.03.
   - 66 test xanh, Release có zip.
-- **Kiểm tra tay:** phụ đề, Giảm chuyển động, Chữ lớn, đổi phím trên giao diện, lưu điểm từ màn hình kết quả. Phần lưu điểm đã thử qua API bằng curl.
+- **Kiểm tra tự động bằng `ui-smoke`:** đổi phím (trùng, hợp lệ, mặc định), tạm dừng, chữ lớn, cỡ chữ ≥ 18 px, lưu điểm và bảng xếp hạng.
+- **Còn kiểm tra tay:** phụ đề, Giảm chuyển động (rung camera, chớp màn hình).
 - **Video:** người dùng tự quay theo [docs/demo/kich-ban-video.md](../demo/kich-ban-video.md) rồi tải lên Release.
 - **Rủi ro:**
   - Máy chấm cần có Chrome, Chromium hoặc Edge để chạy bench.

@@ -19,6 +19,10 @@
   - Chữ UI tối thiểu 18 px, có tùy chọn Chữ lớn ×1.25.
 - **Đóng gói:** `npm run release` → `dist/dao-den-long-v1.0.0.zip` (đã kèm three.js, chạy bằng `node server.mjs`); GitHub Release v1.0.0.
 - Tài liệu: retro, kịch bản video, README đủ mục (yêu cầu hệ thống, bench, soak).
+- Sửa sau khi rà soát:
+  - `node server.mjs` tự mở trình duyệt (tắt bằng `--no-open`).
+  - Bench tự chạy headless khi máy Linux không có màn hình.
+  - Thêm `scripts/ui-smoke.mjs`: kiểm thử giao diện thật qua Chrome, có trong `npm run proof`.
 
 ### ⚠ Thay đổi phá vỡ tương thích
 - `contract_version` đổi thành `"1.3"`; thêm `bench_cmd` và `soak_cmd`.
