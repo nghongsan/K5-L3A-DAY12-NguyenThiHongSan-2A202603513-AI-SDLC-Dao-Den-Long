@@ -13,6 +13,8 @@ Token đo từ transcript cục bộ bằng `npm run tokens` (scripts/token-usag
 | Giữa phase (push, kiểm tra lab board, repo đề) | ~10 | ~20k | ~1.3M | ~5k | Lab board tải phase mới qua database chỉ trình duyệt đọc được, nên người dùng dán Ticket-02 |
 | Phase 2 (lõi v1.1, 3 bản đồ, tính năng mới, giao diện, đo FPS, bằng chứng) | ~42 | ~215k | ~16.4M | ~187k | Ngữ cảnh dài nên phần đọc cache tăng nhanh |
 | **Cộng dồn tới tag phase-2** | 84 | 439k | 22.2M | 329k | |
+| Phase 3 (dầu đèn, drain, luật bình minh, giao diện, ADR, changelog) | ~17 | ~69k | ~8.5M | ~57k | Vẫn cùng phiên; ít lượt hơn nhờ sửa bằng script có assert |
+| **Cộng dồn tới tag phase-3** | 101 | 508k | 30.7M | 387k | |
 
 "Đọc cache" là ngữ cảnh được gửi lại ở mỗi lượt gọi (rẻ hơn nhiều so với input mới). Phần này tăng theo số lượt × độ dài hội thoại, nên giảm số lượt là cách tiết kiệm chính.
 
@@ -26,6 +28,10 @@ Token đo từ transcript cục bộ bằng `npm run tokens` (scripts/token-usag
 
 1. Dán nguyên văn tab Ticket-02 từ lab board (agent không đọc được database của lab board).
 2. "Làm tiếp": agent viết lại lõi theo thứ tự 12 bước, viết test cho từng tính năng, làm giao diện 3 Đêm, đo FPS, rồi làm bằng chứng và gắn tag.
+
+## Lời nhắc chính (Phase 3)
+
+1. Dán nguyên văn Ticket-03 + "Làm tiếp Phase 3".
 
 ## Cách đã tiết kiệm token
 
